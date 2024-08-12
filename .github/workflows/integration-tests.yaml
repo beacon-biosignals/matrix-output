@@ -28,7 +28,7 @@ jobs:
         run: sleep 5
       # Keep `id` the same between `setup-simple` and `setup-complex`
       # to ensure we can separate output per job.
-      - uses: ./output
+      - uses: ./
         id: matrix-output  
         with:
           yaml: |
@@ -82,7 +82,7 @@ jobs:
       - uses: actions/checkout@v4
       # Keep `id` the same between `setup-simple` and `setup-complex`
       # to ensure we can separate output per job.
-      - uses: ./output
+      - uses: ./
         id: matrix-output
         with:
           yaml: |
@@ -142,7 +142,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: ./output
+      - uses: ./
         id: matrix-output
         continue-on-error: true
         with:
