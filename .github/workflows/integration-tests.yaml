@@ -152,7 +152,7 @@ jobs:
         run: exit 1
 
   test-job-name:
-    name: Setup Simple
+    name: Job Name
     runs-on: ubuntu-latest
     permissions:
       contents: read
