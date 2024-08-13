@@ -90,7 +90,7 @@ jobs:
             version_number: ${{ matrix.version }}
 
   test-complex:
-    name: Test Complext
+    name: Test Complex
     needs: setup-complex
     runs-on: ubuntu-latest
     steps:
