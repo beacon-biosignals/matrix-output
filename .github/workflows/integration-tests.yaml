@@ -155,6 +155,7 @@ jobs:
     name: Job Name
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     steps:
       - uses: actions/checkout@v4

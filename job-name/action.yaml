@@ -19,12 +19,12 @@ runs:
   using: composite
   steps:
     - uses: actions/checkout@v4
-      if: ${{ inputs.job-name != '' }}
+      if: ${{ inputs.job-name == '' }}
       with:
         ref: ${{ github.workflow_sha }}
         path: ${{ github.action_path }}/repo
     - id: workflow
-      if: ${{ inputs.job-name != '' }}
+      if: ${{ inputs.job-name == '' }}
       shell: bash
       run: |
         # Workflow job name template
@@ -38,7 +38,7 @@ runs:
         workflow_ref: ${{ github.workflow_ref }}
         job_key: ${{ github.job }}
     - id: render
-      if: ${{ inputs.job-name != '' }}
+      if: ${{ inputs.job-name == '' }}
       shell: bash
       run: |
         # Render job name
