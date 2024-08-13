@@ -16,7 +16,7 @@ runs:
       shell: bash
       run: |
         # Determine job name template
-        set -x
+        [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
         # e.g. octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch -> .github/workflows/my-workflow.yml
         workflow_path="$(echo "${workflow_ref%@*}" | cut -d/ -f3-)"
         job_name_template="$(job_key="${job_key}" yq '.jobs[env(job_key)].name' "${repo_path}/${workflow_path:?}")"
@@ -29,7 +29,7 @@ runs:
       shell: bash
       run: |
         # Render job name
-        set -x
+        [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
         # Determine if job name contains GitHub expressions. As GitHub expressions must be
         # closed we can just check for the opening sequence.
         if grep -qE '\$\{\{' <<<"${job_name_template}"; then

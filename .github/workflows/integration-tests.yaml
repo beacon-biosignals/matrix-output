@@ -197,7 +197,7 @@ jobs:
           expected: "Job Name (${{ matrix.build.name }}, ${{ matrix.build.repo }}, ${{ matrix.version }})"
 
   test-job-name-matrix-expr:
-    name: ${{ github.job }}
+    name: ${{ github.job }} - ${{ matrix.index }} - ${{ strategy.job-index }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -217,4 +217,4 @@ jobs:
           fi
         env:
           output: ${{ steps.job-name.outputs.job-name }}
-          expected: ${{ github.job }}
+          expected: ${{ github.job }} - ${{ matrix.index }} - ${{ strategy.job-index }}
