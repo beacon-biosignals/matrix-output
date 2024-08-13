@@ -175,6 +175,15 @@ jobs:
 
   setup-race-condition:
     name: Setup Race Condition
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        index:
+          - 1
+          - 2
     outputs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
