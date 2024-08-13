@@ -160,10 +160,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./job-name/
         id: job-name
-      - run: |
-          if [[ "${output}" != "${expected}" ]]; then
-              exit 1
-          fi
+      - name: Matches expected name
+        run: '[[ "${output}" == "${expected}" ]] || exit 1'
         env:
           output: ${{ steps.job-name.outputs.job-name }}
           expected: "Job Name"
@@ -172,6 +170,7 @@ jobs:
     name: Job Name
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     strategy:
       fail-fast: false
@@ -188,19 +187,26 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./job-name/
         id: job-name
-      - run: |
-          if [[ "${output}" != "${expected}" ]]; then
-              exit 1
-          fi
+      - name: Matches expected name
+        run: '[[ "${output}" == "${expected}" ]] || exit 1'
         env:
           output: ${{ steps.job-name.outputs.job-name }}
           expected: "Job Name (${{ matrix.build.name }}, ${{ matrix.build.repo }}, ${{ matrix.version }})"
+      - name: Matches GitHub API name
+        run: |
+          length=$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}jobs" | jq --arg name "$job_name" '.jobs | map(select(.name == $name)) | length')
+          [[ $length -eq 1 ]] || exit 1
+        env:
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
+          job_name: ${{ steps.job-name.outputs.job-name }}
 
   test-job-name-matrix-expr:
     # TODO: Using `github.job` with any expressions results in it being empty
     name: ${{ github.event_name }} - ${{ matrix.dne }} - ${{ matrix.index }} - ${{ strategy.job-index }}
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     strategy:
       fail-fast: false
@@ -212,10 +218,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./job-name/
         id: job-name
-      - run: |
-          if [[ "${output}" != "${expected}" ]]; then
-              exit 1
-          fi
+      - name: Matches expected name
+        run: '[[ "${output}" == "${expected}" ]] || exit 1'
         env:
           output: ${{ steps.job-name.outputs.job-name }}
           expected: ${{ github.event_name }} -  - ${{ matrix.index }} - ${{ strategy.job-index }}
+      - name: Matches GitHub API name
+        run: |
+          length=$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}jobs" | jq --arg name "$job_name" '.jobs | map(select(.name == $name)) | length')
+          [[ $length -eq 1 ]] || exit 1
+        env:
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
+          job_name: ${{ steps.job-name.outputs.job-name }}
