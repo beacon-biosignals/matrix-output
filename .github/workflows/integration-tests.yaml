@@ -28,7 +28,7 @@ jobs:
       # Keep `id` the same between `setup-simple` and `setup-complex`
       # to ensure we can separate output per job.
       - uses: ./
-        id: matrix-output  
+        id: matrix-output
         with:
           yaml: |
             index: ${{ matrix.index }}
@@ -170,3 +170,53 @@ jobs:
       - name: Action failed
         if: ${{ steps.matrix-output1.outcome != 'success' || steps.matrix-output2.outcome != 'failure' }}
         run: exit 1
+
+  setup-race-condition:
+    name: Setup Race Condition
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        index:
+          - 1
+          - 2
+    outputs:
+      results-json: ${{ steps.matrix-output.outputs.json }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: ${{ strategy.job-index == 0 }}
+        run: sleep 5
+      - uses: ./
+        id: matrix-output
+        with:
+          yaml: |
+            index: ${{ matrix.index }}
+      - if: ${{ strategy.job-index == 1 }}
+        run: sleep 5
+
+  test-race-condition:
+    name: Test Race Condition
+    needs: setup-race-condition
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output JSON
+        run: |
+          if [[ "${output_json}" != "${expected_json}" ]]; then
+              cat <<<"${output_json}" >"output"
+              cat <<<"${expected_json}" >"expected"
+              diff output expected | cat -te
+              exit 1
+          fi
+        env:
+          output_json: ${{ needs.setup-race-condition.outputs.results-json }}
+          expected_json: |-
+            [
+              {
+                "index": 1
+              },
+              {
+                "index": 2
+              }
+            ]
