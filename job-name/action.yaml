@@ -12,10 +12,10 @@ runs:
       with:
         ref: ${{ github.workflow_sha }}
         path: ${{ github.action_path }}/repo
-    - name: Determine job name template
-      id: job-name-tpl
+    - id: job-name-tpl
       shell: bash
       run: |
+        # Determine job name template
         set -x
         # e.g. octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch -> .github/workflows/my-workflow.yml
         workflow_path="$(echo "${workflow_ref%@*}" | cut -d/ -f3-)"
@@ -25,21 +25,22 @@ runs:
         repo_path: ${{ github.action_path }}/repo
         workflow_ref: ${{ github.workflow_ref }}
         job_key: ${{ github.job }}
-    - name: Render job name
-      id: job-name
+    - id: job-name
       shell: bash
       run: |
+        # Render job name
+        set -x
         # Determine if job name contains GitHub expressions. As GitHub expressions must be
         # closed we can just check for the opening sequence.
         if echo '${job_name_template}' | grep -qE '\$\{\{'; then
             # Convert GHA expressions into Bash expressions
-            job_name_expr="$(perl -pe "${gha_expr_regex:?}" <<<"${job_name_template}")"
+            job_name_expr="$(perl -pe 's/\$\{\{\s*([a-z]+)\.([a-z0-9._-]+)\s*}}/\$(jq ".\2" <<<"\${\1_json:?}")/g' <<<"${job_name_template}")"
             job_name="$(eval "${job_name_expr}")"
         else
             # GitHub adds job matrix values to job names which do not contain expressions.
             matrix_values="$(jq -r '[.. | select(type != "object")] | join(", ")' <<<"${matrix_json}")"
 
-            if [[ -n "$matrix_values" ]]; then
+            if [[ -n "${matrix_values}" ]]; then
                 job_name="${job_name_template} (${matrix_values})"
             else
                 job_name="${job_name_template}"
@@ -48,9 +49,6 @@ runs:
         echo "string=${job_name:?}" | tee -a "$GITHUB_OUTPUT"
       env:
         job_name_template: ${{ steps.job-name-tpl.outputs.string }}
-
-        # https://github.com/orgs/community/discussions/26621#discussioncomment-3252557
-        gha_expr_regex: ${{ 's/\${{\s*([a-z]+)\.([a-z0-9._-]+)\s*}}/\$(jq ".\2" <<<"\${\1_json:?}")/g' }}
 
         # `jobs.<job_id>.name` can use the contexts: [github, needs, strategy, matrix, vars, inputs]
         # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/contexts#context-availability
