@@ -148,7 +148,7 @@ jobs:
         with:
           yaml: ""
       - name: Action failed
-        if: ${{ steps.matrix-output.outcome != 'failed' }}
+        if: ${{ steps.matrix-output.outcome != 'failure' }}
         run: exit 1
 
   test-duplicate:
@@ -172,5 +172,5 @@ jobs:
           yaml: |
             demo: 2
       - name: Action failed
-        if: ${{ steps.matrix-output1.outcome != 'success' || steps.matrix-output2.outcome != 'failed' }}
+        if: ${{ steps.matrix-output1.outcome != 'success' || steps.matrix-output2.outcome != 'failure' }}
         run: exit 1
