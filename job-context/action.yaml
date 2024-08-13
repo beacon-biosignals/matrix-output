@@ -38,7 +38,7 @@ runs:
         job_name_template="$(job_key="${job_key}" yq '.jobs[env(job_key)].name' "${repo_path}/${workflow_path:?}")"
         echo "job-name-template=${job_name_template:?}" | tee -a "$GITHUB_OUTPUT"
       env:
-        repo_path: ${{ github.action_path }}/repo
+        repo_path: ${{ inputs.path }}
         workflow_ref: ${{ github.workflow_ref }}
         job_key: ${{ github.job }}  # User supplied job key cannot be used as we cannot properly render `matrix` expressions
     - id: render
