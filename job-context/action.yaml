@@ -8,7 +8,7 @@ inputs:
     required: false
   path:
     type: string
-    default: ${{ github.action_path }}/repo
+    default: ""
     required: true
 outputs:
   job-name:
@@ -24,7 +24,7 @@ runs:
       if: ${{ inputs.job-name == '' }}
       with:
         ref: ${{ github.workflow_sha }}
-        path: ${{ inputs.path }}
+        path: ${{ inputs.path || format('{0}/repo', github.action_path) }}
     - id: workflow
       if: ${{ inputs.job-name == '' }}
       shell: bash
@@ -38,7 +38,7 @@ runs:
         job_name_template="$(job_key="${job_key}" yq '.jobs[env(job_key)].name' "${repo_path}/${workflow_path:?}")"
         echo "job-name-template=${job_name_template:?}" | tee -a "$GITHUB_OUTPUT"
       env:
-        repo_path: ${{ inputs.path }}
+        repo_path: ${{ inputs.path || format('{0}/repo', github.action_path) }}
         workflow_ref: ${{ github.workflow_ref }}
         job_key: ${{ github.job }}  # User supplied job key cannot be used as we cannot properly render `matrix` expressions
     - id: render
