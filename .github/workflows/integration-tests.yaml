@@ -197,7 +197,7 @@ jobs:
           expected: "Job Name (${{ matrix.build.name }}, ${{ matrix.build.repo }}, ${{ matrix.version }})"
 
   test-job-name-matrix-expr:
-    name: ${{ strategy.job-index }} - ${{ github.job }}
+    name: ${{ strategy.job-index }} - ${{ github.event_name }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
