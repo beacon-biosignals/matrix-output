@@ -34,8 +34,8 @@ runs:
         # closed we can just check for the opening sequence.
         if grep -qE '\$\{\{' <<<"${job_name_template}"; then
             # Convert GHA expressions into Bash expressions
-            job_name_expr="$(perl -pe 's/\$\{\{\s*([a-z]+)\.([a-z0-9._-]+)\s*}}/\$(jq ".\2" <<<"\${\1_json:?}")/g' <<<"${job_name_template}")"
-            job_name="$(eval "${job_name_expr}")"
+            job_name_expr="$(perl -pe 's/\$\{\{\s*([a-z]+)\.([a-z0-9._-]+)\s*}}/\$(jq -r ".\2" <<<"\${\1_json:?}")/g' <<<"${job_name_template}")"
+            job_name="$(eval "echo ${job_name_expr}")"
         else
             # GitHub adds job matrix values to job names which do not contain expressions.
             matrix_values="$(jq -r '[.. | select(type != "object")] | join(", ")' <<<"${matrix_json}")"
