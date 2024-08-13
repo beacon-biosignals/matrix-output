@@ -77,6 +77,9 @@ runs:
       shell: bash
       run: |
         # Fetch job ID
+        [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
+        set -euo pipefail
+        set -x
         jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs")"
         job_ids="$(jq -c --arg name "$job_name" '[.jobs | select(.name == $name) | .id]')"
         echo "job-ids=${job_ids:?}" | tee -a "$GITHUB_OUTPUT"
