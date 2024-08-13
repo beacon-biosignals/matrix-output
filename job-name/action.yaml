@@ -31,6 +31,7 @@ runs:
         # Render job name
         [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
         set -euo pipefail
+        set -x
         # Determine if job name contains GitHub expressions. As GitHub expressions must be
         # closed we can just check for the opening sequence.
         if grep -qE '\$\{\{' <<<"${job_name_template}"; then
