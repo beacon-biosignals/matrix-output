@@ -56,9 +56,9 @@ runs:
             matrix_values="$(jq -r '[.. | select(type != "object")] | join(", ")' <<<"${matrix_json}")"
 
             if [[ -n "${matrix_values}" ]]; then
-                job_name="${job_name_expr} (${matrix_values})"
+                job_name="${job_name_template} (${matrix_values})"
             else
-                job_name="${job_name_expr}"
+                job_name="${job_name_template}"
             fi
         fi
         echo "job-name=${job_name:?}" | tee -a "$GITHUB_OUTPUT"
