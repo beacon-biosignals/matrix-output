@@ -23,7 +23,7 @@ runs:
       run: yq -o=json <<<"${input_yaml:?}" >job-output.json
       env:
         input_yaml: ${{ inputs.yaml }}
-    - uses: ${{ github.action_repository }}/job-context@${{ github.action_ref }}
+    - uses: beacon-biosignals/matrix-output/job-context@466c693173d9d5b623e6125d66afb817477e5a83
       id: job
     - name: Upload job output
       uses: actions/upload-artifact@v4
