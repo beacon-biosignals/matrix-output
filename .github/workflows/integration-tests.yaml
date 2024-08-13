@@ -150,7 +150,6 @@ jobs:
         if: ${{ steps.matrix-output.outcome != 'failure' }}
         run: exit 1
 
-<<<<<<< HEAD
   test-duplicate:
     name: Test Duplicate
     runs-on: ubuntu-latest
