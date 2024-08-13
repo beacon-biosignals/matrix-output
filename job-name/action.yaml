@@ -3,8 +3,6 @@ name: Job Context
 description:
 inputs:
   job-name:
-    description: >-
-      A string representing YAML data. Typically, a simple dictionary of key/value pairs.
     type: string
     default: ""
     required: false
@@ -29,6 +27,8 @@ runs:
       run: |
         # Workflow job name template
         [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
+        set -euo pipefail
+
         # e.g. octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch -> .github/workflows/my-workflow.yml
         workflow_path="$(echo "${workflow_ref%@*}" | cut -d/ -f3-)"
         job_name_template="$(job_key="${job_key}" yq '.jobs[env(job_key)].name' "${repo_path}/${workflow_path:?}")"
@@ -36,7 +36,7 @@ runs:
       env:
         repo_path: ${{ github.action_path }}/repo
         workflow_ref: ${{ github.workflow_ref }}
-        job_key: ${{ github.job }}
+        job_key: ${{ github.job }}  # User supplied job key cannot be used as we cannot properly render `matrix` expressions
     - id: render
       if: ${{ inputs.job-name == '' }}
       shell: bash
@@ -44,7 +44,7 @@ runs:
         # Render job name
         [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
         set -euo pipefail
-        set -x
+
         # Determine if job name contains GitHub expressions. As GitHub expressions must be
         # closed we can just check for the opening sequence.
         if grep -qE '\$\{\{' <<<"${job_name_template}"; then
@@ -79,7 +79,7 @@ runs:
         # Fetch job ID
         [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
         set -euo pipefail
-        set -x
+
         jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs")"
         job_ids="$(jq -c --arg name "$job_name" '[.jobs[] | select(.name == $name) | .id]' <<<"${jobs}")"
         echo "job-ids=${job_ids:?}" | tee -a "$GITHUB_OUTPUT"
