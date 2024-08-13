@@ -17,6 +17,8 @@ runs:
       run:
         # e.g. octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch -> .github/workflows/my-workflow.yml
         workflow_path="$(echo "${workflow_ref%@*}" | cut -d/ -f3-)"
+        echo "$workflow_path"
+        yq '.jobs' "$workflow_path"
         job_name_template="$(job_key="${job_key}" yq '.jobs[env(job_key)].name' "${workflow_path:?}")"
         echo "name=${job_name_template:?}" | tee -a "$GITHUB_OUTPUT"
       env:
