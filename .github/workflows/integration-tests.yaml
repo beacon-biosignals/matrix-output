@@ -262,7 +262,7 @@ jobs:
         env:
           output: ${{ steps.job-context.outputs.job-name }}
           expected: ${{ github.job }}
-      - name: Matches GitHub API name
+      - name: Matches multiple jobs
         run: |
           [[ $(jq length <<<"${job_ids}") -eq 2 ]] || exit 1
           [[ -z "${job_id}" ]] || exit 1
