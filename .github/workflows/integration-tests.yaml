@@ -150,6 +150,7 @@ jobs:
         if: ${{ steps.matrix-output.outcome != 'failure' }}
         run: exit 1
 
+<<<<<<< HEAD
   test-duplicate:
     name: Test Duplicate
     runs-on: ubuntu-latest
@@ -175,15 +176,6 @@ jobs:
 
   setup-race-condition:
     name: Setup Race Condition
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        index:
-          - 1
-          - 2
     outputs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
@@ -222,3 +214,122 @@ jobs:
                 "index": 2
               }
             ]
+
+  test-job-name:
+    name: Job Name
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./job-context/
+        id: job-context
+      - name: Matches expected name
+        run: '[[ "${output}" == "${expected}" ]] || exit 1'
+        env:
+          output: ${{ steps.job-context.outputs.job-name }}
+          expected: "Job Name"
+
+  test-job-name-matrix:
+    name: Job Name
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - name: App One
+            repo: user/app1
+          - name: App Two
+            repo: user/app2
+        version:
+          - "1.0"
+          - "2.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./job-context/
+        id: job-context
+      - name: Matches expected name
+        run: '[[ "${output}" == "${expected}" ]] || exit 1'
+        env:
+          output: ${{ steps.job-context.outputs.job-name }}
+          expected: "Job Name (${{ matrix.build.name }}, ${{ matrix.build.repo }}, ${{ matrix.version }})"
+      - name: Matches GitHub API name
+        run: |
+          jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs")"
+          if [[ $(jq --arg name "$job_name" '.jobs | map(select(.name == $name)) | length' <<<"${jobs}") -ne 1 ]]; then
+              jq '.jobs[].name' <<<"${jobs}"
+              exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
+          job_name: ${{ steps.job-context.outputs.job-name }}
+
+  test-job-name-matrix-expr:
+    # TODO: Using `github.job` with any expressions results in it being empty
+    name: ${{ github.event_name }} - ${{ matrix.dne }} - ${{ matrix.index }} - ${{ strategy.job-index }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        index:
+          - 1
+          - 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./job-context/
+        id: job-context
+      - name: Matches expected name
+        run: '[[ "${output}" == "${expected}" ]] || exit 1'
+        env:
+          output: ${{ steps.job-context.outputs.job-name }}
+          expected: ${{ github.event_name }} -  - ${{ matrix.index }} - ${{ strategy.job-index }}
+      - name: Matches GitHub API name
+        run: |
+          jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs")"
+          if [[ $(jq --arg name "$job_name" '.jobs | map(select(.name == $name)) | length' <<<"${jobs}") -ne 1 ]]; then
+              jq '.jobs[].name' <<<"${jobs}"
+              exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
+          job_name: ${{ steps.job-context.outputs.job-name }}
+
+  test-job-name-ambiguous:
+    name: ${{ github.job }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        index:
+          - 1
+          - 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./job-context/
+        id: job-context
+      - name: Matches expected name
+        run: '[[ "${output}" == "${expected}" ]] || exit 1'
+        env:
+          output: ${{ steps.job-context.outputs.job-name }}
+          expected: ${{ github.job }}
+      - name: Matches multiple jobs
+        run: |
+          [[ $(jq length <<<"${job_ids}") -eq 2 ]] || exit 1
+          [[ -z "${job_id}" ]] || exit 1
+        env:
+          job_ids: ${{ steps.job-context.outputs.job-ids }}
+          job_id: ${{ steps.job-context.outputs.job-id }}
