@@ -172,7 +172,7 @@ jobs:
       - uses: ./job-name/
 
   test-job-name2:
-    name: ${{ github.job }}
+    name: ${{ github.job }
     runs-on: ubuntu-latest
     permissions:
       contents: read
