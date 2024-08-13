@@ -39,6 +39,7 @@ runs:
       id: merge
       shell: bash
       run: |
+        ls matrix-output
         # Specify our multiline output using GH action flavored heredocs
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
         {
