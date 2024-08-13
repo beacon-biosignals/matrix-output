@@ -238,4 +238,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           run_id: ${{ github.run_id }}
           run_attempt: ${{ github.run_attempt }}
-          job_name: foo
+          job_name: ${{ steps.job-name.outputs.job-name }}
