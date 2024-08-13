@@ -170,3 +170,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./job-name/
+
+  test-job-name2:
+    name: ${{ github.job }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        index:
+          - 1
+          - 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./job-name/
