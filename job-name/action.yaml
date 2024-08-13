@@ -12,7 +12,8 @@ runs:
       with:
         ref: ${{ github.workflow_sha }}
         path: ${{ github.action_path }}/repo
-    - id: job-name-tpl
+    - name: Determine job name template
+      id: job-name-tpl
       shell: bash
       run: |
         set -x
@@ -24,7 +25,8 @@ runs:
         repo_path: ${{ github.action_path }}/repo
         workflow_ref: ${{ github.workflow_ref }}
         job_key: ${{ github.job }}
-    - id: job-name
+    - name: Render job name
+      id: job-name
       shell: bash
       run: |
         # Determine if job name contains GitHub expressions. As GitHub expressions must be
@@ -37,7 +39,7 @@ runs:
             # GitHub adds job matrix values to job names which do not contain expressions.
             matrix_values="$(jq -r '[.. | select(type != "object")] | join(", ")' <<<"${matrix_json}")"
 
-            if [[ -n "$matrix_values" ]];
+            if [[ -n "$matrix_values" ]]; then
                 job_name="${job_name_template} (${matrix_values})"
             else
                 job_name="${job_name_template}"
