@@ -72,6 +72,5 @@ The `matrix-output` action supports the following inputs:
 The follow [job permissions](https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs) are required to run this action:
 
 ```yaml
-permissions:
-  action: read
+permissions: {}
 ```
