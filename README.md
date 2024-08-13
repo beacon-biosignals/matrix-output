@@ -2,6 +2,8 @@
 
 Collect outputs from each matrix job. Currently, setting output for matrix jobs will cause outputs of earlier completed jobs to be overwritten by jobs completed later (see [discussion](https://github.com/orgs/community/discussions/26639)). This action allows the output from each matrix job to be collected into a JSON list to be utilized by dependent jobs.
 
+The `matrix-output` job is intended to only be used once per job. Attempting to utilize this action multiple times within the same job will cause the second use of this action to fail.
+
 ## Examples
 
 ```yaml

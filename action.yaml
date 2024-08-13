@@ -26,7 +26,7 @@ runs:
     - name: Upload job output
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.action }}-${{ github.job }}-${{ strategy.job-index }}
+        name: matrix-output-${{ github.job }}-${{ strategy.job-index }}
         path: job-output.json
         if-no-files-found: error
     - name: Determine available matrix job outputs
@@ -40,13 +40,13 @@ runs:
         echo "num=${num_job_uploads:?}" | tee -a "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
-        prefix: ${{ github.action }}-${{ github.job }}-
+        prefix: matrix-output-${{ github.job }}-
         run_id: ${{ github.run_id }}
     - name: Download job matrix outputs
       uses: actions/download-artifact@v4
       if: ${{ steps.job-output.outputs.num == strategy.job-total }}
       with:
-        pattern: ${{ github.action }}-${{ github.job }}-*
+        pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
         merge-multiple: false
     - name: Merge job matrix output

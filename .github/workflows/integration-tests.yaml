@@ -148,5 +148,29 @@ jobs:
         with:
           yaml: ""
       - name: Action failed
-        if: ${{ steps.matrix-output.outcome == 'success' }}
+        if: ${{ steps.matrix-output.outcome != 'failed' }}
+        run: exit 1
+
+  test-duplicate:
+    name: Test Duplicate
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        id: matrix-output1
+        continue-on-error: true
+        with:
+          yaml: |
+            demo: 1
+      - uses: ./
+        id: matrix-output2
+        continue-on-error: true
+        with:
+          yaml: |
+            demo: 2
+      - name: Action failed
+        if: ${{ steps.matrix-output1.outcome != 'success' || steps.matrix-output2.outcome != 'failed' }}
         run: exit 1
