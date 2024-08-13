@@ -44,14 +44,14 @@ runs:
         run_id: ${{ github.run_id }}
     - name: Download job matrix outputs
       uses: actions/download-artifact@v4
-      if: ${{ steps.job-output.outputs.num == strategy.job-total }}
+      if: ${{ steps.job-output.outputs.num >= strategy.job-total }}
       with:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
         merge-multiple: false
     - name: Merge job matrix output
       id: merge
-      if: ${{ steps.job-output.outputs.num == strategy.job-total }}
+      if: ${{ steps.job-output.outputs.num >= strategy.job-total }}
       shell: bash
       run: |
         # Specify our multiline output using GH action flavored heredocs
