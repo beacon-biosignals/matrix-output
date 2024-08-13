@@ -198,7 +198,7 @@ jobs:
 
   test-job-name-matrix-expr:
     # TODO: Using `github.job` with any expressions results in it being empty
-    name: ${{ github.event_name }} - ${{ matrix.input }} - ${{ strategy.job-index }}
+    name: ${{ github.event_name }} - ${{ matrix.dne }} - ${{ matrix.index }} - ${{ strategy.job-index }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -218,4 +218,4 @@ jobs:
           fi
         env:
           output: ${{ steps.job-name.outputs.job-name }}
-          expected: ${{ github.event_name }} - ${{ matrix.input }} - ${{ strategy.job-index }}
+          expected: ${{ github.event_name }} -  - ${{ matrix.index }} - ${{ strategy.job-index }}
