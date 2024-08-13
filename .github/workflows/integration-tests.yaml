@@ -150,3 +150,18 @@ jobs:
       - name: Action failed
         if: ${{ steps.matrix-output.outcome == 'success' }}
         run: exit 1
+
+  test-job-name:
+    name: Setup Simple
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        index:
+          - 1
+          - 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./job-name/

@@ -1,0 +1,24 @@
+---
+name: Job Name
+description:
+inputs: {}
+outputs:
+  job-name:
+    value: ${{ steps.merge.outputs.json }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.workflow_sha }}
+        path: ${{ github.action_path }}/repo
+    - id: job
+      shell: bash
+      run:
+        # e.g. octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch -> .github/workflows/my-workflow.yml
+        workflow_path="$(echo "${workflow_ref%@*}" | cut -d/ -f3-)"
+        job_name_template="$(yq '.jobs[env(job_key)].name' "${workflow_path:?}")"
+        echo "name=${job_name_template:?}" | tee -a "$GITHUB_OUTPUT"
+      env:
+        workflow_ref: ${{ github.workflow_ref }}
+        job_key: ${{ github.job }}
