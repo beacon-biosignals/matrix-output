@@ -159,6 +159,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./job-name/
+        id: job-name
+      - run: |
+          if [[ "${output}" != "${expected}" ]]; then
+              exit 1
+          fi
+        env:
+          output: ${{ steps.job-name.outputs.job-name }}
+          expected: "Job Name"
 
   test-job-name-matrix:
     name: Job Name
@@ -179,6 +187,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./job-name/
+        id: job-name
+      - run: |
+          if [[ "${output}" != "${expected}" ]]; then
+              exit 1
+          fi
+        env:
+          output: ${{ steps.job-name.outputs.job-name }}
+          expected: "Job Name (${{ matrix.build.name }}, ${{ matrix.build.repo }}, ${{ matrix.version }})"
 
   test-job-name-matrix-expr:
     name: ${{ github.job }}
@@ -194,3 +210,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./job-name/
+        id: job-name
+      - run: |
+          if [[ "${output}" != "${expected}" ]]; then
+              exit 1
+          fi
+        env:
+          output: ${{ steps.job-name.outputs.job-name }}
+          expected: ${{ github.job }}
