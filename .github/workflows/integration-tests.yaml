@@ -156,6 +156,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./job-name/
+
+  test-job-name-matrix:
+    name: Job Name
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -171,8 +180,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./job-name/
 
-  test-job-name2:
-    name: ${{ github.job }
+  test-job-name-matrix-expr:
+    name: ${{ github.job }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
