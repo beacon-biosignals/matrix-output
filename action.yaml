@@ -23,10 +23,12 @@ runs:
       run: yq -o=json <<<"${input_yaml:?}" >job-output.json
       env:
         input_yaml: ${{ inputs.yaml }}
+    - uses: ${{ github.action_repository }}/job-context@${{ github.action_ref }}
+      id: job
     - name: Upload job output
       uses: actions/upload-artifact@v4
       with:
-        name: matrix-output-${{ github.job }}-${{ strategy.job-index }}
+        name: matrix-output-${{ github.job }}-${{ strategy.job-index }}-${{ steps.job.outputs.job-id }}
         path: job-output.json
         if-no-files-found: error
     - name: Download job matrix outputs
