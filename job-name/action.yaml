@@ -19,8 +19,14 @@ runs:
         # e.g. octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch -> .github/workflows/my-workflow.yml
         workflow_path="$(echo "${workflow_ref%@*}" | cut -d/ -f3-)"
         job_name_template="$(job_key="${job_key}" yq '.jobs[env(job_key)].name' "${repo_path}/${workflow_path:?}")"
-        echo "name=${job_name_template:?}" | tee -a "$GITHUB_OUTPUT"
-        echo "$matrix_json"
+
+        # Job matrix which doesn't use any expressions
+        if [[ -n "${matrix_json}" ]]; then
+            matrix_values="$(jq -r '[.. | select(type != "object")] | join(", ")' <<<"${matrix_json}")"
+            job_name="${job_name_template} (${matrix_values})"
+        fi
+
+        echo "name=${job_name:?}" | tee -a "$GITHUB_OUTPUT"
       env:
         repo_path: ${{ github.action_path }}/repo
         workflow_ref: ${{ github.workflow_ref }}
