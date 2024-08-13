@@ -25,6 +25,8 @@ runs:
         input_yaml: ${{ inputs.yaml }}
     - uses: beacon-biosignals/matrix-output/job-context@466c693173d9d5b623e6125d66afb817477e5a83
       id: job
+      with:
+        path: ${{ github.action_path }}/repo
     - name: Upload job output
       uses: actions/upload-artifact@v4
       with:

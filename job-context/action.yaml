@@ -6,6 +6,10 @@ inputs:
     type: string
     default: ""
     required: false
+  path:
+    type: string
+    default: ${{ github.action_path }}/repo
+    required: true
 outputs:
   job-name:
     value: ${{ inputs.job-name || steps.render.outputs.job-name }}
@@ -20,7 +24,7 @@ runs:
       if: ${{ inputs.job-name == '' }}
       with:
         ref: ${{ github.workflow_sha }}
-        path: ${{ github.action_path }}/repo
+        path: ${{ inputs.path }}
     - id: workflow
       if: ${{ inputs.job-name == '' }}
       shell: bash
