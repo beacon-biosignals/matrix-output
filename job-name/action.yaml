@@ -20,7 +20,9 @@ runs:
         workflow_path="$(echo "${workflow_ref%@*}" | cut -d/ -f3-)"
         job_name_template="$(job_key="${job_key}" yq '.jobs[env(job_key)].name' "${repo_path}/${workflow_path:?}")"
         echo "name=${job_name_template:?}" | tee -a "$GITHUB_OUTPUT"
+        echo "$matrix_json"
       env:
         repo_path: ${{ github.action_path }}/repo
         workflow_ref: ${{ github.workflow_ref }}
         job_key: ${{ github.job }}
+        matrix_json: ${{ toJSON(matrix) }}

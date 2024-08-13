@@ -159,9 +159,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        index:
-          - 1
-          - 2
+        build:
+          - name: App One
+            repo: user/app1
+          - name: App Two
+            repo: user/app2
+        version:
+          - "1.0"
+          - "2.0"
     steps:
       - uses: actions/checkout@v4
       - uses: ./job-name/
