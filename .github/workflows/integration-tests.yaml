@@ -201,7 +201,7 @@ jobs:
           yaml: |
             index: ${{ matrix.index }}
       - if: ${{ strategy.job-index == 1 }}
-        run: sleep 5
+        run: sleep 15
 
   test-race-condition:
     name: Test Race Condition
