@@ -56,23 +56,23 @@ runs:
         artifact_job_ids="$(jq -rs '[.[].metadata."job-id"]' matrix-output/*/*.json)"
 
         # Fetch job information for all run attempts for this workflow. As the `filter=all`
-        # query only returns completed jobs we'll perform two queries to get a complete set
-        # of job information.
+        # query only seems to return completed jobs we'll perform two queries to get a
+        # complete set of job information.
         run_jobs="$(
-            jq -s '[.[] | {id, run_id, run_attempt, created_at, completed_at, conclusion}]' \
+            jq -s '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' \
             <<<"$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq --arg run_attempt "${run_attempt:?}" '.jobs[] | select(.run_attempt < $run_attempt)')" \
             <<<"$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs" | jq '.jobs[]')")"
 
         # gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq '.jobs | map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name) | [.[] | {id, conclusion}]')"
 
-        # Determine the job for the latest attempt. For each attempt all jobs are given a
-        # new job ID. We filter out these remove these jobs as we won't they will never
-        # have any associated artifacts.
-        latest_run_jobs="$(jq 'map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name)' <<<"${run_jobs}")"
-        run_job_ids="$(jq '[.[] | .id]' <<<"${run_jobs}")"
+        # Determine the latest executed job. For each run attempt every job in the workflow
+        # is given a new job ID even if that job isn't re-run. We filter out these jobs as
+        # they will never have any associated artifacts.
+        executed_jobs="$(jq 'map(select(.completed_at == null or .completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name)' <<<"${run_jobs}")"
+        executed_job_ids="$(jq '[.[] | .id]' <<<"${executed_jobs}")"
 
         # Perform an intersection between the job ID lists
-        matrix_jobs_ids="$(jq -n --argjson A "${run_job_ids:?}" --argjson B "${artifact_job_ids:?}" '$A - ($A - $B) | unique')"
+        matrix_jobs_ids="$(jq -n --argjson A "${executed_job_ids:?}" --argjson B "${artifact_job_ids:?}" '$A - ($A - $B) | unique')"
         matrix_jobs="$(jq --argjson m "${matrix_jobs_ids}" 'map(select(.id as $id | $m | index($id)))' <<<"$run_jobs")"
 
         successful_job_ids="$(jq 'map(select(.conclusion == "success") | .id)' <<<"${matrix_jobs}")"
