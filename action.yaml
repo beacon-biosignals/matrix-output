@@ -46,7 +46,7 @@ runs:
         path: matrix-output
         merge-multiple: false
     - name: Determine completed matrix jobs
-      id: completed
+      id: completed-matrix-jobs
       shell: bash
       run: |
         # Determine completed matrix jobs
@@ -58,12 +58,14 @@ runs:
         # Determine the job for the latest attempt. For each attempt all jobs are given a
         # new job ID. We filter out these remove these jobs as we won't they will never
         # have any associated artifacts.
-        jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq '.jobs | map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name) | [.[] | {id, conclusion}]')"
-
-        successful_job_ids="$(jq 'map(select(.conclusion == "success") | .id)' <<<"${jobs}")"
+        run_jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq '.jobs | map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name) | [.[] | {id, conclusion}]')"
+        run_job_ids="$(jq '[.[] | .id]' <<<"${run_jobs}")"
 
         # Perform an intersection between the job ID lists
-        matrix_jobs="$(jq -n --argjson A "${successful_job_ids:?}" --argjson B "${artifact_job_ids:?}" '$A - ($A - $B) | unique')"
+        matrix_jobs_ids="$(jq -n --argjson A "${run_job_ids:?}" --argjson B "${artifact_job_ids:?}" '$A - ($A - $B) | unique')"
+        matrix_jobs="$(jq --argjson m "${matrix_jobs_ids}" 'map(select(.id as $id | $m | index($id)))' <<<"$run_jobs")"
+
+        successful_job_ids="$(jq 'map(select(.conclusion == "success") | .id)' <<<"${matrix_jobs}")"
 
         num_matrix_jobs="$(jq length <<<"${matrix_jobs}")"
         echo "Jobs completed ${num_matrix_jobs}/${{ strategy.job-total }}" >&2
@@ -72,6 +74,9 @@ runs:
         GH_TOKEN: ${{ github.token }}
         prefix: matrix-output-${{ github.job }}-
         run_id: ${{ github.run_id }}
+    # - if:  steps.completed-matrix-jobs.outputs.num + 1 == strategy.job_total }}
+    #   shell: bash
+    #   run: |
     - name: Merge job matrix output
       id: merge
       shell: bash
