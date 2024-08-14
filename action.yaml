@@ -69,6 +69,7 @@ runs:
         echo "Jobs completed ${num_matrix_jobs}/${{ strategy.job-total }}" >&2
         echo "num=${num_matrix_jobs:?}" | tee -a "$GITHUB_OUTPUT"
       env:
+        GH_TOKEN: ${{ github.token }}
         prefix: matrix-output-${{ github.job }}-
         run_id: ${{ github.run_id }}
     - name: Merge job matrix output
