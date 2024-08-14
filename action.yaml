@@ -18,19 +18,25 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Generate job output
-      shell: bash
-      run: yq -o=json <<<"${input_yaml:?}" >job-output.json
-      env:
-        input_yaml: ${{ inputs.yaml }}
     - uses: beacon-biosignals/matrix-output/job-context@dabf4aae56b754e4d2cbfd3319c294ebedd9ad42
       id: job
       with:
         path: ${{ github.action_path }}/repo
+    - name: Generate job output
+      shell: bash
+      run: |
+        input_json="$(yq -o=json <<<"${input_yaml:?}")"
+        jq -ne \
+            --argjson metadata "{\"job-id": ${job_id:?}}" \
+            --argjson outputs "${input_json:?}" \
+            '$ARGS.named' | tee -a job-output.json
+      env:
+        input_yaml: ${{ inputs.yaml }}
+        job_id: ${{ steps.job.outputs.job-id }}
     - name: Upload job output
       uses: actions/upload-artifact@v4
       with:
-        name: matrix-output-${{ github.job }}-${{ strategy.job-index }}-${{ steps.job.outputs.job-id }}
+        name: matrix-output-${{ github.job }}-${{ strategy.job-index }}
         path: job-output.json
         if-no-files-found: error
     - name: Download job matrix outputs
