@@ -93,7 +93,7 @@ runs:
         run_id: ${{ github.run_id }}
         run_attempt: ${{ github.run_attempt }}
     - id: selected
-      if: ${{ steps.matrix-jobs.outputs.num == strategy.job_total }}
+      if: ${{ steps.matrix-jobs.outputs.num == strategy.job-total }}
       shell: bash
       run: |
         # Wait for other matrix jobs
@@ -121,7 +121,7 @@ runs:
         job_id: ${{ steps.job.outputs.job-id }}
     - name: Merge job matrix output
       id: merge
-      if: ${{ steps.job.outputs.job-id == steps.selected.outputs.job_id }}
+      if: ${{ steps.job.outputs.job-id == steps.selected.outputs.job-id }}
       shell: bash
       run: |
         # Merge job matrix output
