@@ -58,7 +58,14 @@ runs:
         # Determine the job for the latest attempt. For each attempt all jobs are given a
         # new job ID. We filter out these remove these jobs as we won't they will never
         # have any associated artifacts.
-        run_jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq '.jobs | map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name) | [.[] | {id, conclusion}]')"
+        run_jobs="$(
+            jq -s '{id, run_id, run_attempt, created_at, completed_at, conclusion}' \
+            <<<"$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq --arg run_attempt "${run_attempt:?}" '.jobs[] | select(.run_attempt < $run_attempt)')" \
+            <<<"$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs/attempts/${run_attempt:?}/jobs" | jq '.jobs[]')")"
+
+        # gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq '.jobs | map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name) | [.[] | {id, conclusion}]')"
+
+        latest_run_jobs="$(jq 'map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name)' <<<"${run_jobs}")"
         run_job_ids="$(jq '[.[] | .id]' <<<"${run_jobs}")"
 
         # Perform an intersection between the job ID lists
@@ -74,6 +81,7 @@ runs:
         GH_TOKEN: ${{ github.token }}
         prefix: matrix-output-${{ github.job }}-
         run_id: ${{ github.run_id }}
+        run_attempt: ${{ github.run_attempt }}
     # - if:  steps.completed-matrix-jobs.outputs.num + 1 == strategy.job_total }}
     #   shell: bash
     #   run: |
