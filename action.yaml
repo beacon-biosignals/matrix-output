@@ -92,15 +92,17 @@ runs:
         prefix: matrix-output-${{ github.job }}-
         run_id: ${{ github.run_id }}
         run_attempt: ${{ github.run_attempt }}
-    - if: ${{ steps.matrix-jobs.outputs.num == strategy.job_total }}
+    - id: selected
+      if: ${{ steps.matrix-jobs.outputs.num == strategy.job_total }}
       shell: bash
       run: |
         # Wait for other matrix jobs
         set -x
 
         # Select one of the running nodes to wait
-        waiting_job_id="$(jq -er 'map(select(.conclusion == null) | .id) | last' <<<"${matrix_jobs}")"
-        [[ "${job_id}" == "${waiting_job_id}" ]] || exit 0
+        selected_job_id="$(jq -er 'map(select(.conclusion == null) | .id) | last' <<<"${matrix_jobs}")"
+        echo "job-id=${selected_job_id:?}" | tee -a "$GITHUB_OUTPUT"
+        [[ "${job_id}" == "${selected_job_id}" ]] || exit 0
 
         # Wait for remaining running jobs
         readarray -t running_job_ids <<<"$(jq -r --arg job_id "${job_id}" '.[] | select(.conclusion == null and .id != $job_id) | .id' <<<"${matrix_jobs}")"
@@ -119,6 +121,7 @@ runs:
         job_id: ${{ steps.job.outputs.job-id }}
     - name: Merge job matrix output
       id: merge
+      if: ${{ steps.job.outputs.job-id == steps.selected.outputs.job_id }}
       shell: bash
       run: |
         # Merge job matrix output
