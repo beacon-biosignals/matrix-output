@@ -11,6 +11,7 @@ jobs:
     name: Setup Simple
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     strategy:
       fail-fast: false
@@ -62,6 +63,7 @@ jobs:
     name: Setup Complex
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     strategy:
       fail-fast: false
@@ -138,6 +140,7 @@ jobs:
     name: Test Empty
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     steps:
       - uses: actions/checkout@v4
@@ -154,6 +157,7 @@ jobs:
     name: Test Duplicate
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     steps:
       - uses: actions/checkout@v4
@@ -177,6 +181,7 @@ jobs:
     name: Setup Race Condition
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     strategy:
       fail-fast: false

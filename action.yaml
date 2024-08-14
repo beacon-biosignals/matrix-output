@@ -63,7 +63,7 @@ runs:
         successful_job_ids="$(jq 'map(select(.conclusion == "success") | .id)' <<<"${jobs}")"
 
         # Perform an intersection between the job ID lists
-        matrix_jobs="$(jq -n --argjson A '${successful_job_ids:?}' --argjson B '${artifact_job_ids:?}' '$A - ($A - $B) | unique')"
+        matrix_jobs="$(jq -n --argjson A "${successful_job_ids:?}" --argjson B "${artifact_job_ids:?}" '$A - ($A - $B) | unique')"
 
         num_matrix_jobs="$(jq length <<<"${matrix_jobs}")"
         echo "Jobs completed ${num_matrix_jobs}/${{ strategy.job-total }}" >&2
