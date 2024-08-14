@@ -45,11 +45,11 @@ runs:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
         merge-multiple: false
-    - name: Determine completed matrix jobs
-      id: completed-matrix-jobs
+    - name: Determine matrix jobs
+      id: matrix-jobs
       shell: bash
       run: |
-        # Determine completed matrix jobs
+        # Determine matrix jobs
         set -x
 
         # Extract the recorded job IDs from the artifacts
