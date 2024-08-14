@@ -45,15 +45,42 @@ runs:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
         merge-multiple: false
+    - name: Determine completed matrix jobs
+      id: completed
+      shell: bash
+      run: |
+        # Determine completed matrix jobs
+        set -x
+
+        # Extract the recorded job IDs from the artifacts
+        artifact_job_ids="$(jq -rs '[.[].metadata."job-id"]' matrix-output/*/*.json)"
+
+        # Determine the job for the latest attempt. For each attempt all jobs are given a
+        # new job ID. We filter out these remove these jobs as we won't they will never
+        # have any associated artifacts.
+        jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq '.jobs | map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name) | [.[] | {id, conclusion}]')"
+
+        successful_job_ids="$(jq 'map(select(.conclusion == "success") | .id)' <<<"${jobs}")"
+
+        # Perform an intersection between the job ID lists
+        matrix_jobs="$(jq -n --argjson A '${successful_job_ids:?}' --argjson B '${artifact_job_ids:?}' '$A - ($A - $B) | unique')"
+
+        num_matrix_jobs="$(jq length <<<"${matrix_jobs}")"
+        echo "Jobs completed ${num_matrix_jobs}/${{ strategy.job-total }}" >&2
+        echo "num=${num_matrix_jobs:?}" | tee -a "$GITHUB_OUTPUT"
+      env:
+        prefix: matrix-output-${{ github.job }}-
+        run_id: ${{ github.run_id }}
     - name: Merge job matrix output
       id: merge
       shell: bash
       run: |
-        ls matrix-output
+        # Merge job matrix output
+
         # Specify our multiline output using GH action flavored heredocs
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
         {
             echo "json<<EOF"
-            jq -s '.' matrix-output/*/*.json
+            jq -s '[.[].outputs]' matrix-output/*/*.json
             echo "EOF"
         } | tee -a "$GITHUB_OUTPUT"
