@@ -115,7 +115,7 @@ runs:
         set -x
 
         # Wait for remaining running jobs
-        readarray -t running_job_ids <<<"$(jq -r --arg job_id "${job_id}" '.[] | select(.conclusion == null and .id != $job_id) | .id' <<<"${matrix_jobs}")"
+        readarray -t running_job_ids <<<"$(jq -r --arg job_id "${job_id}" '.[] | select(.conclusion == null and .id != ($job_id | tonumber)) | .id' <<<"${matrix_jobs}")"
         while [[ ${#running_job_ids[@]} -gt 0 ]]; do
             running_job_id="${running_job_ids[0]}"
             echo "Waiting for $running_job_id"
