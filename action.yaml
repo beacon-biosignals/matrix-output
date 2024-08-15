@@ -143,6 +143,7 @@ runs:
             sleep 5
         done
       env:
+        GH_TOKEN: ${{ github.token }}
         matrix_jobs: ${{ steps.matrix-jobs.outputs.json }}
         artifact_jobs: ${{ steps.matrix-jobs.outputs.artifact-jobs-json }}
         run_id: ${{ github.run_id }}
