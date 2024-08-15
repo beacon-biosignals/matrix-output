@@ -30,6 +30,7 @@ runs:
             --argjson metadata "{\"job-id\": ${job_id:?}}" \
             --argjson outputs "${input_json:?}" \
             '$ARGS.named' | tee -a job-output.json
+        touch job-sync
       env:
         input_yaml: ${{ inputs.yaml }}
         job_id: ${{ steps.job.outputs.job-id }}
@@ -105,7 +106,7 @@ runs:
       if: ${{ steps.matrix-jobs.outputs.num == strategy.job-total && steps.matrix-jobs.outputs.num-running > 1 }}
       with:
         name: matrix-output-sync-${{ github.job }}-${{ strategy.job-index }}
-        path: ""
+        path: job-sync
     - id: wait
       if: ${{ steps.matrix-jobs.outputs.num == strategy.job-total && steps.matrix-jobs.outputs.num-running > 1 }}
       shell: bash
