@@ -114,10 +114,6 @@ runs:
         # Wait for running matrix jobs
         set -x
 
-        # https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#list-workflow-run-artifacts
-        artifacts="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts" --jq '.artifacts')"
-        num_job_uploads="$(jq --arg prefix "${prefix:?}" 'map(select(.name | startswith($prefix))) | length' <<<"$artifacts")"
-
         # Wait for remaining running jobs
         readarray -t running_job_ids <<<"$(jq -r --arg job_id "${job_id}" '.[] | select(.conclusion == null and .id != $job_id) | .id' <<<"${matrix_jobs}")"
         while [[ ${#running_job_ids[@]} -gt 0 ]]; do
@@ -129,7 +125,6 @@ runs:
 
             # https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#list-workflow-run-artifacts
             artifacts="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts")"
-
 
             sync_artifact_exists="$(jq --arg name "${sync_artifact_name:?}" '.artifacts | map(select(.name == $name)) | any' <<<"${artifacts}")"
             if [[ "${sync_artifact_exists}" == "true" ]]; then
@@ -150,6 +145,7 @@ runs:
       env:
         matrix_jobs: ${{ steps.matrix-jobs.outputs.json }}
         artifact_jobs: ${{ steps.matrix-jobs.outputs.artifact-jobs-json }}
+        run_id: ${{ github.run_id }}
         job_id: ${{ steps.job.outputs.job-id }}
         prefix: matrix-output-sync-${{ github.job }}
     - name: Merge job matrix output
