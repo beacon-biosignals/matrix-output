@@ -60,9 +60,9 @@ runs:
         # Fetch job information for all run attempts for this workflow. The GitHub API endpoint
         # `/repos/{owner}/{repo}/actions/runs/{run_id}/jobs?filter=all` has proven to be unreliable.
         run_jobs='[]'
-        for i in $(seq 1 ${run_attempt}); do
+        for attempt in $(seq 1 ${run_attempt}); do
             attempt_jobs="$(
-                gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs" | \
+                gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${attempt:?}/jobs" | \
                 jq '[.jobs[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]'
             )"
 
