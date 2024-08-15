@@ -46,6 +46,42 @@ runs:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
         merge-multiple: false
+    - name: Determine executed jobs
+      id: executed-jobs
+      shell: bash
+      run: |
+        # Determine executed jobs
+        set -x
+
+        # Fetch the jobs for the current and all previous run attempts. We are not using
+        # the GitHub API endpoint `/repos/{owner}/{repo}/actions/runs/{run_id}/jobs?filter=all`
+        # here as it has proven to be unreliable and does not include running jobs.
+        jobs='[]'
+        for attempt in $(seq 1 ${run_attempt}); do
+            attempt_jobs="$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${attempt:?}/jobs" --jq '.jobs')"
+
+            # Remove job entries which weren't actually executed during this attempt.
+            # The GitHub API includes new `job_id`s for each `run_attempt` and we want to
+            # exclude these entries as we only want jobs which have actually executed.
+            attempt_jobs="$(jq 'map(select(.completed_at == null or .completed_at >= .created_at))' <<<"${attempt_jobs}")"
+
+            jobs="$(jq -e --argjson attempt_jobs "${attempt_jobs}" '. |= . + $attempt_jobs' <<<"$jobs")"
+        done
+
+        # Remove older jobs which were re-run
+        jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${jobs}")"
+
+        # Specify our multiline output using GH action flavored heredocs
+        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
+        {
+            echo "json<<EOF"
+            jq '.' <<<"${jobs}"
+            echo "EOF"
+        } | tee -a "$GITHUB_OUTPUT"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        run_id: ${{ github.run_id }}
+        run_attempt: ${{ github.run_attempt }}
     - name: Determine matrix jobs
       id: matrix-jobs
       shell: bash
@@ -57,44 +93,12 @@ runs:
         artifact_jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/*/*.json)"
         artifact_job_ids="$(jq '[.[] | .id]' <<<"${artifact_jobs}")"
 
-        # Fetch job information for all run attempts for this workflow. The GitHub API endpoint
-        # `/repos/{owner}/{repo}/actions/runs/{run_id}/jobs?filter=all` has proven to be unreliable.
-        run_jobs='[]'
-        for attempt in $(seq 1 ${run_attempt}); do
-            attempt_jobs="$(
-                gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${attempt:?}/jobs" | \
-                jq '[.jobs[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]'
-            )"
-
-            # Remove job entries which weren't actually executed during this attempt as they won't
-            # have any associated artifacts.
-            attempt_jobs="$(jq 'map(select(.completed_at == null or .completed_at >= .created_at))' <<<"${attempt_jobs}")"
-
-            run_jobs="$(jq -e --argjson attempt_jobs "${attempt_jobs}" '. |= . + $attempt_jobs' <<<"$run_jobs")"
-        done
-
-        executed_jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${run_jobs}")"
+        executed_jobs="$(jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${executed_jobs}")"
         executed_job_ids="$(jq '[.[] | .id]' <<<"${executed_jobs}")"
-
-        # Fetch job information for all run attempts for this workflow. As the `filter=all`
-        # query only seems to return completed jobs we'll perform two queries to get a
-        # complete set of job information.
-        # run_jobs="$(
-        #     jq -s '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' \
-        #     <<<"$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq --arg run_attempt "${run_attempt:?}" '.jobs[] | select(.run_attempt < ($run_attempt | tonumber))')" \
-        #     <<<"$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs" | jq '.jobs[]')")"
-
-        # gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/jobs?filter=all" | jq '.jobs | map(select(.completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name) | [.[] | {id, conclusion}]')"
-
-        # Determine the latest executed job. For each run attempt every job in the workflow
-        # is given a new job ID even if that job isn't re-run. We filter out these jobs as
-        # they will never have any associated artifacts.
-        # executed_jobs="$(jq 'map(select(.completed_at == null or .completed_at >= .created_at)) | sort_by(.created_at) | reverse | unique_by(.name)' <<<"${run_jobs}")"
-        # executed_job_ids="$(jq '[.[] | .id]' <<<"${executed_jobs}")"
 
         # Perform an intersection between the job ID lists
         matrix_jobs_ids="$(jq -n --argjson A "${executed_job_ids:?}" --argjson B "${artifact_job_ids:?}" '$A - ($A - $B) | unique')"
-        matrix_jobs="$(jq --argjson m "${matrix_jobs_ids}" 'map(select(.id as $id | $m | index($id)))' <<<"$run_jobs")"
+        matrix_jobs="$(jq --argjson m "${matrix_jobs_ids}" 'map(select(.id as $id | $m | index($id)))' <<<"$executed_jobs")"
 
         num_matrix_jobs="$(jq length <<<"${matrix_jobs}")"
         echo "Matrix output ready ${num_matrix_jobs}/${{ strategy.job-total }}" >&2
@@ -119,8 +123,7 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
         prefix: matrix-output-${{ github.job }}-
-        run_id: ${{ github.run_id }}
-        run_attempt: ${{ github.run_attempt }}
+        executed_jobs: ${{ steps.executed-jobs.outputs.json }}
     - name: Upload sync artifact
       uses: actions/upload-artifact@v4
       if: ${{ steps.matrix-jobs.outputs.num == strategy.job-total && steps.matrix-jobs.outputs.num-running > 1 }}
