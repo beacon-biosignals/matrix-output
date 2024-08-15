@@ -133,9 +133,9 @@ runs:
             fi
 
             running_job="$(gh api -X GET "/repos/{owner}/{repo}/actions/jobs/${running_job_id:?}")"
-            is_running="$(jq '.conclusion != null' <<<"${running_job}")"
+            is_running="$(jq '.conclusion == null' <<<"${running_job}")"
 
-            if [[ "${is_running}" == "true" ]]; then
+            if [[ "${is_running}" == "false" ]]; then
                 running_job_ids=("${running_job_ids[@]:1}")  # Drop the first element
                 continue
             fi
