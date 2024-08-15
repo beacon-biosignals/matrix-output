@@ -59,7 +59,7 @@ runs:
 
         # Fetch job information for all run attempts for this workflow. The GitHub API endpoint
         # `/repos/{owner}/{repo}/actions/runs/{run_id}/jobs?filter=all` has proven to be unreliable.
-        jobs='[]'
+        run_jobs='[]'
         for i in $(seq 1 ${run_attempt}); do
             attempt_jobs="$(
                 gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs" | \
@@ -70,10 +70,10 @@ runs:
             # have any associated artifacts.
             attempt_jobs="$(jq 'map(select(.completed_at == null or .completed_at >= .created_at))' <<<"${attempt_jobs}")"
 
-            jobs="$(jq -e --argjson attempt_jobs "${attempt_jobs}" '. |= . + $attempt_jobs' <<<"$jobs")"
+            run_jobs="$(jq -e --argjson attempt_jobs "${attempt_jobs}" '. |= . + $attempt_jobs' <<<"$run_jobs")"
         done
 
-        executed_jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${jobs}")"
+        executed_jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${run_jobs}")"
         executed_job_ids="$(jq '[.[] | .id]' <<<"${executed_jobs}")"
 
         # Fetch job information for all run attempts for this workflow. As the `filter=all`
