@@ -51,7 +51,6 @@ runs:
       shell: bash
       run: |
         # Determine executed jobs
-        set -x
 
         # Fetch the jobs for the current and all previous run attempts. We are not using
         # the GitHub API endpoint `/repos/{owner}/{repo}/actions/runs/{run_id}/jobs?filter=all`
@@ -71,13 +70,18 @@ runs:
         # Remove older jobs which were re-run
         jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${jobs}")"
 
+        if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
+            echo "Executed jobs:"
+            jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}' <<<"${jobs}"
+        fi
+
         # Specify our multiline output using GH action flavored heredocs
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
         {
             echo "json<<EOF"
             jq '.' <<<"${jobs}"
             echo "EOF"
-        } | tee -a "$GITHUB_OUTPUT"
+        } >>"$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
         run_id: ${{ github.run_id }}
