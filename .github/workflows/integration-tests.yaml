@@ -306,7 +306,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./job-context/
-        id: job-context
+        id: job
       - name: Matches expected name
         run: '[[ "${output}" == "${expected}" ]] || exit 1'
         env:
