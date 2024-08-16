@@ -81,8 +81,6 @@ jobs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
       - uses: actions/checkout@v4
-      - if: ${{ matrix.build.name == 'App Two' && matrix.build.repo == 'user/app2' && matrix.version == '2.0' }}
-        run: exit 1
       # Keep `id` the same between `setup-simple` and `setup-complex`
       # to ensure we can separate output per job.
       - uses: ./
