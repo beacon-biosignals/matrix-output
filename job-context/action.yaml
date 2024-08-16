@@ -2,31 +2,26 @@
 name: Job Context
 description:
 inputs:
-  job-name:
+  path:
+    description: The workflow repo path.
     type: string
     default: ""
     required: false
-  path:
-    type: string
-    default: ""
-    required: true
 outputs:
-  job-name:
-    value: ${{ inputs.job-name || steps.render.outputs.job-name }}
-  job-id:
+  name:
+    description: The rendered job name.
+    value: ${{ steps.render.outputs.job-name }}
+  id:
+    description: The numeric job ID as used by the GitHub API. Not be be confused with `${{ github.job }}`.
     value: ${{ steps.job-api.outputs.job-id }}
-  job-ids:
-    value: ${{ steps.job-api.outputs.job-ids }}
 runs:
   using: composite
   steps:
     - uses: actions/checkout@v4
-      if: ${{ inputs.job-name == '' }}
       with:
         ref: ${{ github.workflow_sha }}
         path: ${{ inputs.path || format('{0}/repo', github.action_path) }}
     - id: workflow
-      if: ${{ inputs.job-name == '' }}
       shell: bash
       run: |
         # Workflow job name template
@@ -42,7 +37,6 @@ runs:
         workflow_ref: ${{ github.workflow_ref }}
         job_key: ${{ github.job }}  # User supplied job key cannot be used as we cannot properly render `matrix` expressions
     - id: render
-      if: ${{ inputs.job-name == '' }}
       shell: bash
       run: |
         # Render job name
@@ -86,13 +80,15 @@ runs:
 
         jobs="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${run_attempt:?}/jobs")"
         job_ids="$(jq -c --arg name "$job_name" '[.jobs[] | select(.name == $name) | .id]' <<<"${jobs}")"
-        echo "job-ids=${job_ids:?}" | tee -a "$GITHUB_OUTPUT"
 
         if [[ $(jq length <<<"${job_ids}") -eq 1 ]]; then
-            echo "job-id=$(jq 'first // empty' <<<"${job_ids}")" | tee -a "$GITHUB_OUTPUT"
+            echo "job-id=$(jq 'first' <<<"${job_ids}")" | tee -a "$GITHUB_OUTPUT"
+        else
+            echo "ERROR: Unable to determine job ID. The job name "${job_name:?}\" is not unique within the workflow." >&2
+            exit 1
         fi
       env:
         GH_TOKEN: ${{ github.token }}
         run_id: ${{ github.run_id }}
         run_attempt: ${{ github.run_attempt }}
-        job_name: ${{ inputs.job-name || steps.render.outputs.job-name }}
+        job_name: ${{ steps.render.outputs.job-name }}
