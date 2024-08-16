@@ -23,7 +23,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: beacon-biosignals/matrix-output/job-context@058ddcc071ab25d68906c3a32ed7ab9f0b50464e
+    - uses: beacon-biosignals/job-context@ed905aa02f3f5e78f3d963d974aee0ac9f97219f
       id: job
       with:
         path: ${{ github.action_path }}/repo
