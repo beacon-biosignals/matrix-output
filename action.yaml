@@ -27,13 +27,13 @@ runs:
       run: |
         input_json="$(yq -o=json <<<"${input_yaml:?}")"
         jq -ne \
-            --argjson metadata "{\"job-id\": ${job_id:?}}" \
+            --argjson metadata "{\"job-id\": ${self_job_id:?}}" \
             --argjson outputs "${input_json:?}" \
             '$ARGS.named' | tee -a job-output.json
         touch job-sync
       env:
         input_yaml: ${{ inputs.yaml }}
-        job_id: ${{ steps.job.outputs.job-id }}
+        self_job_id: ${{ steps.job.outputs.job-id }}
     - name: Upload job output
       uses: actions/upload-artifact@v4
       with:
@@ -115,25 +115,22 @@ runs:
       shell: bash
       run: |
         # Determine matrix jobs
+        [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
         set -x
 
-        artifact_job_ids="$(jq '[.[] | .id]' <<<"${artifact_jobs}")"
+        executed_jobs="$(jq '[.[] | {id, name, conclusion}]' <<<"${executed_jobs:?}")"
 
-        executed_jobs="$(jq '[.[] | {id, name, conclusion}]' <<<"${executed_jobs}")"
-        executed_job_ids="$(jq '[.[] | .id]' <<<"${executed_jobs}")"
+        # Combine the `executed_jobs` into the `artifact_jobs` data (left join) to produce list of jobs in the matrix.
+        matrix_jobs="$(jq -s '.[0] as $aj | .[1] as $ej | JOIN(INDEX($ej[]; .id); $aj[]; (.id | tostring); add)' <<<"${artifact_jobs:?}" <<<"${executed_jobs:?}")"
 
-        # Perform an intersection between the job ID lists
-        matrix_jobs_ids="$(jq -n --argjson A "${executed_job_ids:?}" --argjson B "${artifact_job_ids:?}" '$A - ($A - $B) | unique')"
-        matrix_jobs="$(jq --argjson m "${matrix_jobs_ids}" 'map(select(.id as $id | $m | index($id)))' <<<"$executed_jobs")"
+        num_jobs="$(jq length <<<"${matrix_jobs}")"
+        num_running_jobs="$(jq 'map(select(.conclusion == null)) | length' <<<"${matrix_jobs}")"
 
-        num_matrix_jobs="$(jq length <<<"${matrix_jobs}")"
-        echo "Matrix output ready ${num_matrix_jobs}/${{ strategy.job-total }}" >&2
-
-        num_running_matrix_jobs="$(jq 'map(select(.conclusion == null)) | length' <<<"${matrix_jobs}")"
+        echo "Matrix output produced ${num_jobs}/${{ strategy.job-total }}" >&2
 
         {
-            echo "num=${num_matrix_jobs}"
-            echo "num-running=${num_running_matrix_jobs}"
+            echo "num=${num_jobs}"
+            echo "num-running=${num_running_jobs}"
 
             echo "json<<EOF"
             jq '.' <<<"${matrix_jobs}"
@@ -156,40 +153,45 @@ runs:
         # Wait for running matrix jobs
         set -x
 
-        # Wait for remaining running jobs
-        readarray -t running_job_ids <<<"$(jq -r --arg job_id "${job_id}" '.[] | select(.conclusion == null and .id != ($job_id | tonumber)) | .id' <<<"${matrix_jobs}")"
-        while [[ ${#running_job_ids[@]} -gt 0 ]]; do
-            running_job_id="${running_job_ids[0]}"
-            echo "Waiting for $running_job_id"
+        start=$(date +%s)
 
-            job_index="$(jq --arg id "${running_job_id}" '.[] | select(.id == $id).index' <<<"${artifact_jobs}")"
-            sync_artifact_name="${sync_artifact_prefix}-${artifact_index}"
+        # Wait for remaining running jobs (excluding ourself)
+        readarray -t remaining_job_ids <<<"$(jq -r --arg self "${self_job_id}" '.[] | select(.conclusion == null and .id != ($self | tonumber)) | .id' <<<"${matrix_jobs}")"
+
+        while [[ ${#remaining_job_ids[@]} -gt 0 ]]; do
+            job_id="${remaining_job_ids[0]}"
+            echo "Waiting for $job_id"
+
+            # Check if the job is also waiting
+            job_index="$(jq --arg id "${job_id}" '.[] | select(.id == $id).index' <<<"${matrix_jobs}")"
+            sync_artifact_name="${sync_artifact_prefix}-${job_index}"
 
             # https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#list-workflow-run-artifacts
             artifacts="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts")"
 
             sync_artifact_exists="$(jq --arg name "${sync_artifact_name:?}" '.artifacts | map(select(.name == $name)) | any' <<<"${artifacts}")"
             if [[ "${sync_artifact_exists}" == "true" ]]; then
-                running_job_ids=("${running_job_ids[@]:1}")  # Drop the first element
+                remaining_job_ids=("${remaining_job_ids[@]:1}")  # Drop the first element
                 continue
             fi
 
-            running_job="$(gh api -X GET "/repos/{owner}/{repo}/actions/jobs/${running_job_id:?}")"
-            is_running="$(jq '.conclusion == null' <<<"${running_job}")"
-
+            # Check if the job is still running
+            is_running="$(gh api -X GET "/repos/{owner}/{repo}/actions/jobs/${job_id:?}" | jq '.conclusion == null')"
             if [[ "${is_running}" == "false" ]]; then
-                running_job_ids=("${running_job_ids[@]:1}")  # Drop the first element
+                remaining_job_ids=("${remaining_job_ids[@]:1}")  # Drop the first element
                 continue
             fi
             
             sleep 5
         done
+
+        end=$(date +%s)
+        echo "Waited for other jobs for $((end-start) seconds" >&2
       env:
         GH_TOKEN: ${{ github.token }}
         matrix_jobs: ${{ steps.matrix-jobs.outputs.json }}
-        artifact_jobs: ${{ steps.artifact-jobs.outputs.json }}
         run_id: ${{ github.run_id }}
-        job_id: ${{ steps.job.outputs.job-id }}
+        self_job_id: ${{ steps.job.outputs.job-id }}
         sync_artifact_prefix: matrix-output-sync-${{ github.job }}
     - name: Merge job matrix output
       id: merge
