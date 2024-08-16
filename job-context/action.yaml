@@ -84,7 +84,7 @@ runs:
         if [[ $(jq length <<<"${job_ids}") -eq 1 ]]; then
             echo "job-id=$(jq 'first' <<<"${job_ids}")" | tee -a "$GITHUB_OUTPUT"
         else
-            echo "ERROR: Unable to determine job ID. The job name "${job_name:?}\" is not unique within the workflow." >&2
+            echo "ERROR: Unable to determine job ID. The job name \"${job_name:?}\" is not unique within the workflow." >&2
             exit 1
         fi
       env:
