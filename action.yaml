@@ -122,7 +122,7 @@ runs:
 
         # Combine the `executed_jobs` into the `artifact_jobs` data (left join) to produce list of jobs in the matrix.
         # For more info on `jq`'s SQL style JOIN see: https://qmacro.org/blog/posts/2022/06/23/understanding-jq%27s-sql-style-operators-join-and-index/
-        matrix_jobs="$(jq -n --argjson aj "${artifact_jobs}" --argjson ej "${executed_jobs}" 'JOIN(INDEX($ej[]; .id); $aj[]; (.id | tostring); add)')"
+        matrix_jobs="$(jq -n --argjson aj "${artifact_jobs}" --argjson ej "${executed_jobs}" '[JOIN(INDEX($ej[]; .id); $aj[]; (.id | tostring); add)]')"
 
         num_jobs="$(jq length <<<"${matrix_jobs}")"
         num_running_jobs="$(jq 'map(select(.conclusion == null)) | length' <<<"${matrix_jobs}")"
