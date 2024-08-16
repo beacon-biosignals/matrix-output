@@ -51,10 +51,12 @@ runs:
       shell: bash
       run: |
         # Determine artifact jobs
-        [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
-        set -x
-
         jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/*/*.json)"
+
+        if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
+            echo "Artifact jobs:" >&2
+            jq '.' <<<"${jobs}" >&2
+        fi
 
         # Specify our multiline output using GH action flavored heredocs
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
@@ -96,10 +98,10 @@ runs:
         # Remove older jobs which were re-run
         jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${jobs}")"
 
-        # if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
-            echo "Executed jobs:"
-            jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}"
-        # fi
+        if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
+            echo "Executed jobs:" >&2
+            jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}" >&2
+        fi
 
         {
             echo "json<<EOF"
@@ -115,9 +117,6 @@ runs:
       shell: bash
       run: |
         # Determine matrix jobs
-        [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
-        set -x
-
         executed_jobs="$(jq '[.[] | {id, name, conclusion}]' <<<"${executed_jobs:?}")"
 
         # Combine the `executed_jobs` into the `artifact_jobs` data (left join) to produce list of jobs in the matrix.
@@ -127,7 +126,13 @@ runs:
         num_jobs="$(jq length <<<"${matrix_jobs}")"
         num_running_jobs="$(jq 'map(select(.conclusion == null)) | length' <<<"${matrix_jobs}")"
 
-        echo "Matrix output produced ${num_jobs}/${{ strategy.job-total }}" >&2
+        echo "Matrix outputs produced: ${num_jobs}/${{ strategy.job-total }}" >&2
+        echo "Running jobs remaining: ${num_running_jobs}" >&2
+
+        if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
+            echo "Matrix jobs:" >&2
+            jq '.' <<<"${matrix_jobs}" >&2
+        fi
 
         {
             echo "num=${num_jobs}"
@@ -136,7 +141,7 @@ runs:
             echo "json<<EOF"
             jq '.' <<<"${matrix_jobs}"
             echo "EOF"
-        } | tee -a "$GITHUB_OUTPUT"
+        } >>"$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
         artifact_jobs: ${{ steps.artifact-jobs.outputs.json }}
@@ -152,8 +157,6 @@ runs:
       shell: bash
       run: |
         # Wait for running matrix jobs
-        set -x
-
         start=$(date +%s)
 
         # Wait for remaining running jobs (excluding ourself)
@@ -161,7 +164,7 @@ runs:
 
         while [[ ${#remaining_job_ids[@]} -gt 0 ]]; do
             job_id="${remaining_job_ids[0]}"
-            echo "Waiting for $job_id"
+            echo "Waiting for $job_id" >&2
 
             # Check if the job is also waiting
             job_index="$(jq --arg id "${job_id}" '.[] | select(.id == $id).index' <<<"${matrix_jobs}")"
