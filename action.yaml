@@ -172,8 +172,8 @@ runs:
             echo "Waiting for $job_id" >&2
 
             # Check if the job is also waiting
-            job_index="$(jq --arg id "${job_id}" '.[] | select(.id == $id).index' <<<"${matrix_jobs}")"
-            sync_artifact_name="${sync_artifact_prefix}-${job_index}"
+            job_index="$(jq --arg id "${job_id}" '.[] | select(.id == ($id | tonumber)).index' <<<"${matrix_jobs}")"
+            sync_artifact_name="${sync_artifact_prefix:?}-${job_index:?}"
 
             # https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#list-workflow-run-artifacts
             artifacts="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts")"
