@@ -2,6 +2,8 @@
 
 Provides additional context for the currently running job. GitHub Actions provides a [`job` context](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#job-context) but is missing some pieces including the job name and the job ID (the numeric value as used by the GitHub API).
 
+TODO: Write about requirement for distinct job names within a workflow
+
 ## Examples
 
 ```yaml
@@ -42,7 +44,7 @@ The `job-context` action supports the following inputs:
 | Name   | Description | Example |
 |:-------|:------------|:--------|
 | `name` | The rendered job name. | <pre><code>Build (1.0)</code></pre> |
-| `id`   | The numeric job ID as used by the GitHub API. Not be be confused with `${{ github.job }}`. | <pre><code>28842064821</code></pre> |
+| `id`   | The numeric job ID as used by the GitHub API. Not be be confused with `github.job`. | <pre><code>28842064821</code></pre> |
 
 ## Permissions
 
