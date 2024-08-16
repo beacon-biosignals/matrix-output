@@ -46,6 +46,33 @@ runs:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
         merge-multiple: false
+    - name: Determine artifact jobs
+      id: artifact-jobs
+      shell: bash
+      run: |
+        # Determine artifact jobs
+        [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
+
+        jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/*/*.json)"
+
+        sync_artifact_name="${prefix}-${artifact_index}"
+
+        # Specify our multiline output using GH action flavored heredocs
+        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
+        {
+            echo "json<<EOF"
+            jq '.' <<<"${jobs}"
+            echo "EOF"
+        } >>"$GITHUB_OUTPUT"
+      env:
+        GH_TOKEN: ${{ github.token }}
+    # An alternate version of `/repos/{owner}/{repo}/actions/runs/${run_id}/attempts/${run_attempt}/jobs`
+    # which reports only jobs which were actually executed. Mainly, this results in
+    # different values for `id`, `run_attempt`, and `created_at` being returned.
+    #
+    # Specifically, this alternate version is needed such that the `job-id` written to the
+    # `matrix-output` artifact matches the job `id` from the GitHub API for jobs which were
+    # not re-run.
     - name: Determine executed jobs
       id: executed-jobs
       shell: bash
@@ -75,8 +102,6 @@ runs:
             jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}' <<<"${jobs}"
         fi
 
-        # Specify our multiline output using GH action flavored heredocs
-        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
         {
             echo "json<<EOF"
             jq '.' <<<"${jobs}"
@@ -93,11 +118,9 @@ runs:
         # Determine matrix jobs
         set -x
 
-        # Extract the recorded job IDs from the artifacts
-        artifact_jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/*/*.json)"
         artifact_job_ids="$(jq '[.[] | .id]' <<<"${artifact_jobs}")"
 
-        executed_jobs="$(jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${executed_jobs}")"
+        executed_jobs="$(jq '[.[] | {id, name, conclusion}]' <<<"${executed_jobs}")"
         executed_job_ids="$(jq '[.[] | .id]' <<<"${executed_jobs}")"
 
         # Perform an intersection between the job ID lists
@@ -109,8 +132,6 @@ runs:
 
         num_running_matrix_jobs="$(jq 'map(select(.conclusion == null)) | length' <<<"${matrix_jobs}")"
 
-        # Specify our multiline output using GH action flavored heredocs
-        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
         {
             echo "num=${num_matrix_jobs}"
             echo "num-running=${num_running_matrix_jobs}"
@@ -118,15 +139,10 @@ runs:
             echo "json<<EOF"
             jq '.' <<<"${matrix_jobs}"
             echo "EOF"
-
-            # TODO: Could be merged into matrix-jobs
-            echo "artifact-jobs-json<<EOF"
-            jq '.' <<<"${artifact_jobs}"
-            echo "EOF"
         } | tee -a "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
-        prefix: matrix-output-${{ github.job }}-
+        artifact_jobs: ${{ steps.artifact-jobs.outputs.json }}
         executed_jobs: ${{ steps.executed-jobs.outputs.json }}
     - name: Upload sync artifact
       uses: actions/upload-artifact@v4
@@ -148,7 +164,7 @@ runs:
             echo "Waiting for $running_job_id"
 
             job_index="$(jq --arg id "${running_job_id}" '.[] | select(.id == $id).index' <<<"${artifact_jobs}")"
-            sync_artifact_name="${prefix}-${artifact_index}"
+            sync_artifact_name="${sync_artifact_prefix}-${artifact_index}"
 
             # https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#list-workflow-run-artifacts
             artifacts="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts")"
@@ -172,10 +188,10 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
         matrix_jobs: ${{ steps.matrix-jobs.outputs.json }}
-        artifact_jobs: ${{ steps.matrix-jobs.outputs.artifact-jobs-json }}
+        artifact_jobs: ${{ steps.artifact-jobs.outputs.json }}
         run_id: ${{ github.run_id }}
         job_id: ${{ steps.job.outputs.job-id }}
-        prefix: matrix-output-sync-${{ github.job }}
+        sync_artifact_prefix: matrix-output-sync-${{ github.job }}
     - name: Merge job matrix output
       id: merge
       if: ${{ steps.matrix-jobs.outputs.num == strategy.job-total }}
