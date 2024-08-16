@@ -98,7 +98,7 @@ runs:
 
         # if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
             echo "Executed jobs:"
-            jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}' <<<"${jobs}"
+            jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}"
         # fi
 
         {
