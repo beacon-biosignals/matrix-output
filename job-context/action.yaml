@@ -3,17 +3,21 @@ name: Job Context
 description:
 inputs:
   path:
-    description: The workflow repo path.
+    description: >-
+      The path to the cloned repo containing the workflow. Should only be needed by other
+      GHAs using this action.
     type: string
     default: ""
     required: false
 outputs:
   name:
     description: The rendered job name.
-    value: ${{ steps.render.outputs.job-name }}
+    value: ${{ steps.render.outputs.name }}
   id:
-    description: The numeric job ID as used by the GitHub API. Not be be confused with `github.job`.
-    value: ${{ steps.job-api.outputs.job-id }}
+    description: >-
+      The numeric job ID as used by the GitHub API. Not be be confused with the workflow
+      job key `github.job`.
+    value: ${{ steps.job-api.outputs.id }}
 runs:
   using: composite
   steps:
@@ -31,11 +35,11 @@ runs:
         # e.g. octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch -> .github/workflows/my-workflow.yml
         workflow_path="$(echo "${workflow_ref%@*}" | cut -d/ -f3-)"
         job_name_template="$(job_key="${job_key}" yq '.jobs[env(job_key)].name' "${repo_path}/${workflow_path:?}")"
-        echo "job-name-template=${job_name_template:?}" | tee -a "$GITHUB_OUTPUT"
+        echo "name-template=${job_name_template:?}" | tee -a "$GITHUB_OUTPUT"
       env:
         repo_path: ${{ inputs.path || format('{0}/repo', github.action_path) }}
         workflow_ref: ${{ github.workflow_ref }}
-        job_key: ${{ github.job }}  # User supplied job key cannot be used as we cannot properly render `matrix` expressions
+        job_key: ${{ github.job }}  # User supplied job key cannot be allowed as we cannot properly render `matrix` expressions later
     - id: render
       shell: bash
       run: |
@@ -46,7 +50,8 @@ runs:
         # Determine if job name contains GitHub expressions. As GitHub expressions must be
         # closed we can just check for the opening sequence.
         if grep -qE '\$\{\{' <<<"${job_name_template}"; then
-            # Convert GHA expressions into jq Bash expressions. Convert `null` to `""`.
+            # Convert GHA expressions into jq Bash expressions. Converts `null` results into `""` to match GHA behavior.
+            # e.g. `{{ matrix.demo.version }}` -> `$(jq -r '.demo.version | select(type != "null")' <<<"${matrix_json:?}")`
             job_name_expr="$(perl -pe 's/\$\{\{\s*([a-z]+)\.([a-z0-9._-]+)\s*}}/\$(jq -r --arg p "\2" '\''getpath(\$p | split(".")) | select(type != "null")'\'' <<<"\${\1_json:?}")/g' <<<"${job_name_template}")"
             job_name="$(eval "echo \"${job_name_expr}\"")"
         else
@@ -59,11 +64,11 @@ runs:
                 job_name="${job_name_template}"
             fi
         fi
-        echo "job-name=${job_name:?}" | tee -a "$GITHUB_OUTPUT"
+        echo "name=${job_name:?}" | tee -a "$GITHUB_OUTPUT"
       env:
-        job_name_template: ${{ steps.workflow.outputs.job-name-template }}
+        job_name_template: ${{ steps.workflow.outputs.name-template }}
 
-        # `jobs.<job_id>.name` can use the contexts: [github, needs, strategy, matrix, vars, inputs]
+        # `jobs.<job_id>.name` can use the contexts: [github, needs, strategy, matrix, vars, inputs]. No functions are allowed.
         # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/contexts#context-availability
         github_json: ${{ toJSON(github) }}
         # needs_json: ${{ toJSON(needs) }}
@@ -82,7 +87,7 @@ runs:
         job_ids="$(jq -c --arg name "$job_name" '[.jobs[] | select(.name == $name) | .id]' <<<"${jobs}")"
 
         if [[ $(jq length <<<"${job_ids}") -eq 1 ]]; then
-            echo "job-id=$(jq 'first' <<<"${job_ids}")" | tee -a "$GITHUB_OUTPUT"
+            echo "id=$(jq 'first' <<<"${job_ids}")" | tee -a "$GITHUB_OUTPUT"
         else
             echo "ERROR: Unable to determine job ID. The job name \"${job_name:?}\" is not unique within the workflow." >&2
             exit 1
@@ -91,4 +96,4 @@ runs:
         GH_TOKEN: ${{ github.token }}
         run_id: ${{ github.run_id }}
         run_attempt: ${{ github.run_attempt }}
-        job_name: ${{ steps.render.outputs.job-name }}
+        job_name: ${{ steps.render.outputs.name }}
