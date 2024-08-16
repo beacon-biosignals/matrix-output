@@ -2,7 +2,13 @@
 
 Collect outputs from each matrix job. Currently, setting output for matrix jobs will cause outputs of earlier completed jobs to be overwritten by jobs completed later (see [discussion](https://github.com/orgs/community/discussions/26639)). This action allows the output from each matrix job to be collected into a JSON list to be utilized by dependent jobs.
 
-The `matrix-output` job is intended to only be used once per job. Attempting to utilize this action multiple times within the same job will cause the second use of this action to fail.
+## Requirements
+
+The `matrix-output` action requires that each job in the job matrix uses a distinct job name which is unique within the workflow file. By default job matrix job names are distinct (e.g. `name: Build` -> `Build (App One, user/app1)`) so this only a problem if you accidentally specify the same job name for multiple matrix jobs. If the job name is not unique within the workflow this action will fail and report the ambiguous job name.
+
+Additionally, the `matrix-output` action is intended to only be used once within a job. Attempting to utilize this action multiple times within the same job will cause the second use of this action to fail.
+
+Finally, it is highly recommended that the `matrix-output` is either the last step in the job or the near the end of the job. If you choose to have this action run before other slow running actions you may see some extended runtimes for the last few running jobs in the matrix. In order to guarantee correct output we require that the last running job has a complete set of outputs from all other jobs in the matrix. To ensure the last running job has a complete set of outputs we have those jobs wait for other jobs with an incomplete set of outputs.
 
 ## Examples
 
@@ -32,6 +38,8 @@ jobs:
         with:
           tags: ${{ matrix.build.repo }}:latest
           push: true
+      # !!! Important: In order to reduce delays we highly recommend that the
+      # `matrix-output` action is either the last step in a job or close to the end.
       - uses: beacon-biosignals/matrix-output@v1
         id: matrix-output
         with:
@@ -72,5 +80,7 @@ The `matrix-output` action supports the following inputs:
 The follow [job permissions](https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs) are required to run this action:
 
 ```yaml
-permissions: {}
+permissions:
+  actions: read
+  contents: read
 ```

@@ -2,7 +2,7 @@
 
 Provides additional context for the currently running job. GitHub Actions provides a [`job` context](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#job-context) but is missing some pieces including the job name and the job ID (the numeric value as used by the GitHub API).
 
-## Prerequisites
+## Requirements
 
 The `job-context` action requires that the job in which this action is used has a job name that is unique within the workflow file. By default job names are unique so this is only a problem if you specify a custom `jobs.<job_key>.name`. If the job name is not unique within the workflow this action will fail and report the ambiguous job name.
 
