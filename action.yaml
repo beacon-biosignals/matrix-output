@@ -190,7 +190,7 @@ runs:
         done
 
         end=$(date +%s)
-        echo "Waited for other jobs for $((end-start) seconds" >&2
+        echo "Waited for other jobs for $((end-start)) seconds" >&2
       env:
         GH_TOKEN: ${{ github.token }}
         matrix_jobs: ${{ steps.matrix-jobs.outputs.json }}
