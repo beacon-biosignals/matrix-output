@@ -52,10 +52,9 @@ runs:
       run: |
         # Determine artifact jobs
         [[ "$RUNNER_DEBUG" -eq 1 ]] && set -x
+        set -x
 
         jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/*/*.json)"
-
-        sync_artifact_name="${prefix}-${artifact_index}"
 
         # Specify our multiline output using GH action flavored heredocs
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
@@ -97,10 +96,10 @@ runs:
         # Remove older jobs which were re-run
         jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${jobs}")"
 
-        if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
+        # if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
             echo "Executed jobs:"
             jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}' <<<"${jobs}"
-        fi
+        # fi
 
         {
             echo "json<<EOF"
