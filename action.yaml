@@ -165,14 +165,14 @@ runs:
         start=$(date +%s)
 
         # Wait for remaining running jobs (excluding ourself)
-        readarray -t remaining_job_ids <<<"$(jq -r --arg self "${self_job_id}" '.[] | select(.conclusion == null and .id != ($self | tonumber)) | .id' <<<"${matrix_jobs}")"
+        readarray -t remaining_job_ids <<<"$(jq -r --argjson self "${self_job_id}" '.[] | select(.conclusion == null and .id != $self) | .id' <<<"${matrix_jobs}")"
 
         while [[ ${#remaining_job_ids[@]} -gt 0 ]]; do
             job_id="${remaining_job_ids[0]}"
             echo "Waiting for $job_id" >&2
 
             # Check if the job is also waiting
-            job_index="$(jq --arg id "${job_id}" '.[] | select(.id == ($id | tonumber)).index' <<<"${matrix_jobs}")"
+            job_index="$(jq --argjson id "${job_id}" '.[] | select(.id == $id).index' <<<"${matrix_jobs}")"
             sync_artifact_name="${sync_artifact_prefix:?}-${job_index:?}"
 
             # https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#list-workflow-run-artifacts
