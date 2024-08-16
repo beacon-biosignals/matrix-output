@@ -23,7 +23,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: beacon-biosignals/matrix-output/job-context@dabf4aae56b754e4d2cbfd3319c294ebedd9ad42
+    - uses: beacon-biosignals/matrix-output/job-context@85b4eb2de7354f30a06f51c5b6debb7cd5b540e9
       id: job
       with:
         path: ${{ github.action_path }}/repo
@@ -38,7 +38,7 @@ runs:
         touch job-sync
       env:
         input_yaml: ${{ inputs.yaml }}
-        self_job_id: ${{ steps.job.outputs.job-id }}
+        self_job_id: ${{ steps.job.outputs.id }}
     - name: Upload job output
       uses: actions/upload-artifact@v4
       with:
@@ -200,7 +200,7 @@ runs:
         GH_TOKEN: ${{ github.token }}
         matrix_jobs: ${{ steps.matrix-jobs.outputs.json }}
         run_id: ${{ github.run_id }}
-        self_job_id: ${{ steps.job.outputs.job-id }}
+        self_job_id: ${{ steps.job.outputs.id }}
         sync_artifact_prefix: matrix-output-sync-${{ github.job }}
     - name: Merge job matrix output
       id: merge
