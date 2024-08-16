@@ -8,6 +8,11 @@ inputs:
       A string representing YAML data. Typically, a simple dictionary of key/value pairs.
     type: string
     required: true
+  debug:
+    description: >-
+      Enable debug logging for this specific action.
+    type: string
+    default: "false"
 outputs:
   json:
     description: >-
@@ -53,7 +58,7 @@ runs:
         # Determine artifact jobs
         jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/*/*.json)"
 
-        if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
+        if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ input.debug }}" == "true" ]]; then
             echo "Artifact jobs:" >&2
             jq '.' <<<"${jobs}" >&2
         fi
@@ -98,7 +103,7 @@ runs:
         # Remove older jobs which were re-run
         jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${jobs}")"
 
-        if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
+        if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ input.debug }}" == "true" ]]; then
             echo "Executed jobs:" >&2
             jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}" >&2
         fi
@@ -129,7 +134,7 @@ runs:
         echo "Matrix outputs produced: ${num_jobs}/${{ strategy.job-total }}" >&2
         echo "Running jobs remaining: ${num_running_jobs}" >&2
 
-        if [[ "$RUNNER_DEBUG" -eq 1 ]]; then
+        if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ input.debug }}" == "true" ]]; then
             echo "Matrix jobs:" >&2
             jq '.' <<<"${matrix_jobs}" >&2
         fi

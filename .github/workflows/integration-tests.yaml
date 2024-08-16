@@ -33,6 +33,7 @@ jobs:
         with:
           yaml: |
             index: ${{ matrix.index }}
+          debug: true
 
   test-simple:
     name: Test Simple
@@ -92,6 +93,7 @@ jobs:
             repo: ${{ matrix.build.repo }}
             version_string: "${{ matrix.version }}"
             version_number: ${{ matrix.version }}
+          debug: true
 
   test-complex:
     name: Test Complex
@@ -149,6 +151,7 @@ jobs:
         continue-on-error: true
         with:
           yaml: ""
+          debug: true
       - name: Action failed
         if: ${{ steps.matrix-output.outcome != 'failure' }}
         run: exit 1
@@ -167,12 +170,14 @@ jobs:
         with:
           yaml: |
             demo: 1
+          debug: true
       - uses: ./
         id: matrix-output2
         continue-on-error: true
         with:
           yaml: |
             demo: 2
+          debug: true
       - name: Action failed
         if: ${{ steps.matrix-output1.outcome != 'success' || steps.matrix-output2.outcome != 'failure' }}
         run: exit 1
@@ -200,6 +205,7 @@ jobs:
         with:
           yaml: |
             index: ${{ matrix.index }}
+          debug: true
       - if: ${{ strategy.job-index == 1 }}
         run: sleep 30
 
