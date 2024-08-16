@@ -120,14 +120,9 @@ runs:
 
         executed_jobs="$(jq '[.[] | {id, name, conclusion}]' <<<"${executed_jobs:?}")"
 
-        jq --version
-
-        jq -s '.' <<<"${artifact_jobs:?}" <<<"${executed_jobs:?}"
-        jq -s '.[0] as $aj | .[1] as $ej | INDEX($ej[]; .id)' <<<"${artifact_jobs:?}" <<<"${executed_jobs:?}"
-
         # Combine the `executed_jobs` into the `artifact_jobs` data (left join) to produce list of jobs in the matrix.
         # For more info on `jq`'s SQL style JOIN see: https://qmacro.org/blog/posts/2022/06/23/understanding-jq%27s-sql-style-operators-join-and-index/
-        matrix_jobs="$(jq -s '.[0] as $aj | .[1] as $ej | JOIN(INDEX($ej[]; .id); $aj[]; (.id | tostring); add)' <<<"${artifact_jobs:?}" <<<"${executed_jobs:?}")"
+        matrix_jobs="$(jq -n --argjson aj "${artifact_jobs}" --argjson ej "${executed_jobs}" 'JOIN(INDEX($ej[]; .id); $aj[]; (.id | tostring); add)')"
 
         num_jobs="$(jq length <<<"${matrix_jobs}")"
         num_running_jobs="$(jq 'map(select(.conclusion == null)) | length' <<<"${matrix_jobs}")"
