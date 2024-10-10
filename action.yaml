@@ -25,10 +25,8 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: beacon-biosignals/job-context@abc4b535d749dacbcd688250e36cbec0da6f7d6a  # v1.0.0
-      id: job
-      with:
-        path: ${{ github.action_path }}/repo
+    - id: job
+      uses: beacon-biosignals/job-context@dc62ca83b8f1f85297c2b2038d78dc1fdcc4417d  # v1.1.0
     - name: Generate job output
       shell: bash
       run: |
