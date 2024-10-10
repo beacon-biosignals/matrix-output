@@ -1,7 +1,9 @@
 ---
 name: Matrix Output
-description: >-
-  Collect outputs from each matrix job.
+description: Collect outputs from each matrix job.
+branding:
+  icon: layers
+  color: orange
 inputs:
   yaml:
     description: >-
