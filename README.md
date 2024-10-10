@@ -84,3 +84,5 @@ permissions:
   actions: read
   contents: read
 ```
+
+The permission `actions: read` is needed to determine which matrix jobs are still running while `contents: read` is need for running the action [`beacon-biosignals/job-context`](https://github.com/beacon-biosignals/job-context#permissions).
