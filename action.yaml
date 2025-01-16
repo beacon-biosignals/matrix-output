@@ -72,6 +72,7 @@ runs:
         } >>"$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
     # An alternate version of `/repos/{owner}/{repo}/actions/runs/${run_id}/attempts/${run_attempt}/jobs`
     # which reports only jobs which were actually executed. Mainly, this results in
     # different values for `id`, `run_attempt`, and `created_at` being returned.
@@ -115,6 +116,7 @@ runs:
         } >>"$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
         run_id: ${{ github.run_id }}
         run_attempt: ${{ github.run_attempt }}
     - name: Determine matrix jobs
@@ -149,6 +151,7 @@ runs:
         } >>"$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
         artifact_jobs: ${{ steps.artifact-jobs.outputs.json }}
         executed_jobs: ${{ steps.executed-jobs.outputs.json }}
     - name: Upload sync artifact
@@ -198,6 +201,7 @@ runs:
         echo "Waited for other jobs for $((end-start)) seconds" >&2
       env:
         GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
         matrix_jobs: ${{ steps.matrix-jobs.outputs.json }}
         run_id: ${{ github.run_id }}
         self_job_id: ${{ steps.job.outputs.id }}
