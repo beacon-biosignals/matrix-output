@@ -26,7 +26,7 @@ runs:
   using: composite
   steps:
     - id: job
-      uses: beacon-biosignals/job-context@dc62ca83b8f1f85297c2b2038d78dc1fdcc4417d  # v1.1.0
+      uses: beacon-biosignals/job-context@656c4f5d624c5e6b5679e742c179f5f6da90b02d  # v1.1.1
     - name: Generate job output
       shell: bash
       run: |
