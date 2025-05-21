@@ -64,13 +64,8 @@ runs:
             jq '.' <<<"${jobs}" >&2
         fi
 
-        # Specify our multiline output using GH action flavored heredocs
-        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
-        {
-            echo "json<<EOF"
-            jq '.' <<<"${jobs}"
-            echo "EOF"
-        } >>"$GITHUB_OUTPUT"
+        # Store job list in a file
+        echo $jobs > ${{ runner.temp }}/artifact-jobs.json
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
@@ -110,11 +105,8 @@ runs:
             jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}" >&2
         fi
 
-        {
-            echo "json<<EOF"
-            jq '.' <<<"${jobs}"
-            echo "EOF"
-        } >>"$GITHUB_OUTPUT"
+        # Store job list in a file
+        echo $jobs > ${{ runner.temp }}/executed-jobs.json
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
@@ -124,8 +116,11 @@ runs:
       id: matrix-jobs
       shell: bash
       run: |
+        # Read artifact jobs
+        artifact_jobs="$(jq '.' < ${{ runner.temp }}/artifact-jobs.json)"
+
         # Determine matrix jobs
-        executed_jobs="$(jq '[.[] | {id, name, conclusion}]' <<<"${executed_jobs:?}")"
+        executed_jobs="$(jq '[.[] | {id, name, conclusion}]' < ${{ runner.temp }}/executed-jobs.json)"
 
         # Combine the `executed_jobs` into the `artifact_jobs` data (left join) to produce list of jobs in the matrix.
         # For more info on `jq`'s SQL style JOIN see: https://qmacro.org/blog/posts/2022/06/23/understanding-jq%27s-sql-style-operators-join-and-index/
@@ -153,8 +148,6 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
-        artifact_jobs: ${{ steps.artifact-jobs.outputs.json }}
-        executed_jobs: ${{ steps.executed-jobs.outputs.json }}
     - name: Upload sync artifact
       uses: actions/upload-artifact@v5
       if: ${{ steps.matrix-jobs.outputs.num == strategy.job-total && steps.matrix-jobs.outputs.num-running > 1 }}
