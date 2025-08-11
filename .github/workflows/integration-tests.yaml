@@ -22,7 +22,7 @@ jobs:
     outputs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # Slow down on job to ensure that this is the last run
       - if: ${{ strategy.job-index == 0 }}
         run: sleep 5
@@ -80,7 +80,7 @@ jobs:
     outputs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # Keep `id` the same between `setup-simple` and `setup-complex`
       # to ensure we can separate output per job.
       - uses: ./
@@ -143,7 +143,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./
         id: matrix-output
         continue-on-error: true
@@ -161,7 +161,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./
         id: matrix-output1
         continue-on-error: true
@@ -195,7 +195,7 @@ jobs:
     outputs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - if: ${{ strategy.job-index == 0 }}
         run: sleep 5
       - uses: ./
