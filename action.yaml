@@ -46,7 +46,7 @@ runs:
         path: job-output.json
         if-no-files-found: error
     - name: Download job matrix outputs
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
@@ -56,6 +56,7 @@ runs:
       shell: bash
       run: |
         # Determine artifact jobs
+        find matrix-output
         jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/*/*.json)"
 
         if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ inputs.debug }}" == "true" ]]; then
