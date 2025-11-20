@@ -50,7 +50,7 @@ runs:
       with:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
-        merge-multiple: false
+        merge-multiple: true
     - name: Determine artifact jobs
       id: artifact-jobs
       shell: bash
