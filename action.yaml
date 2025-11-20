@@ -46,18 +46,20 @@ runs:
         path: job-output.json
         if-no-files-found: error
     - name: Download job matrix outputs
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
-        merge-multiple: false
+        merge-multiple: false  # As of v5 individual subdirectories will only be created if the pattern matches more than one artifact
     - name: Determine artifact jobs
       id: artifact-jobs
       shell: bash
       run: |
         # Determine artifact jobs
         find matrix-output
-        jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/*/*.json)"
+
+        shopt -s globstar
+        jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/**/*.json)"
 
         if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ inputs.debug }}" == "true" ]]; then
             echo "Artifact jobs:" >&2
