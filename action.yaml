@@ -85,7 +85,6 @@ runs:
       shell: bash
       run: |
         # Determine executed jobs
-        set -x
 
         # Fetch the jobs for the current and all previous run attempts. We are not using
         # the GitHub API endpoint `/repos/{owner}/{repo}/actions/runs/{run_id}/jobs?filter=all`
@@ -100,6 +99,9 @@ runs:
             attempt_jobs="$(jq 'map(select(.completed_at == null or .completed_at >= .created_at))' <<<"${attempt_jobs}")"
 
             jobs="$(jq -e 'add' <<<"${jobs}" <<<"${attempt_jobs}")"
+
+            echo "jobs"
+            jq . <<<"$jobs"
         done
 
         # Remove older jobs which were re-run
