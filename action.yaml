@@ -56,9 +56,8 @@ runs:
       shell: bash
       run: |
         # Determine artifact jobs
-        find matrix-output
         shopt -s globstar
-        jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/**.json)"
+        jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/**/*.json)"
 
         if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ inputs.debug }}" == "true" ]]; then
             echo "Artifact jobs:" >&2
@@ -214,11 +213,12 @@ runs:
       shell: bash
       run: |
         # Merge job matrix output
+        shopt -s globstar
 
         # Specify our multiline output using GH action flavored heredocs
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
         {
             echo "json<<EOF"
-            jq -s '[.[].outputs]' matrix-output/*/*.json
+            jq -s '[.[].outputs]' matrix-output/**/*.json
             echo "EOF"
         } | tee -a "$GITHUB_OUTPUT"
