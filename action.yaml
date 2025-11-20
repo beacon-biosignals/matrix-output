@@ -56,6 +56,7 @@ runs:
       shell: bash
       run: |
         # Determine artifact jobs
+        find matrix-output
         shopt -s globstar
         jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/**.json)"
 
