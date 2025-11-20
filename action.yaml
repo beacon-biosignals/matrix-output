@@ -98,10 +98,7 @@ runs:
             # exclude these entries as we only want jobs which have actually executed.
             attempt_jobs="$(jq 'map(select(.completed_at == null or .completed_at >= .created_at))' <<<"${attempt_jobs}")"
 
-            jobs="$(jq -e 'add' <<<"${jobs}" <<<"${attempt_jobs}")"
-
-            echo "jobs"
-            jq . <<<"$jobs"
+            jobs="$(jq -s 'add' <<<"${jobs}" <<<"${attempt_jobs}")"
         done
 
         # Remove older jobs which were re-run
