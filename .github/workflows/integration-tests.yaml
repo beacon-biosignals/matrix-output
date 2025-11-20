@@ -178,7 +178,10 @@ jobs:
           debug: true
       - name: Action failed
         if: ${{ steps.matrix-output1.outcome != 'success' || steps.matrix-output2.outcome != 'failure' }}
-        run: exit 1
+        run: |
+          echo "matrix-output1: ${{ steps.matrix-output1.outcome }}" >&2
+          echo "matrix-output2: ${{ steps.matrix-output2.outcome }}" >&2
+          exit 1
 
   setup-race-condition:
     name: Setup Race Condition
