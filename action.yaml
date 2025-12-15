@@ -46,7 +46,7 @@ runs:
         path: job-output.json
         if-no-files-found: error
     - name: Download job matrix outputs
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         pattern: matrix-output-${{ github.job }}-*
         path: matrix-output
