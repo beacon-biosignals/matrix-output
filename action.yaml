@@ -40,7 +40,7 @@ runs:
         input_yaml: ${{ inputs.yaml }}
         self_job_id: ${{ steps.job.outputs.id }}
     - name: Upload job output
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: matrix-output-${{ github.job }}-${{ strategy.job-index }}
         path: job-output.json
@@ -156,7 +156,7 @@ runs:
         artifact_jobs: ${{ steps.artifact-jobs.outputs.json }}
         executed_jobs: ${{ steps.executed-jobs.outputs.json }}
     - name: Upload sync artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       if: ${{ steps.matrix-jobs.outputs.num == strategy.job-total && steps.matrix-jobs.outputs.num-running > 1 }}
       with:
         name: matrix-output-sync-${{ github.job }}-${{ strategy.job-index }}
