@@ -274,24 +274,27 @@ jobs:
         id: matrix-output
         with:
           yaml: |
-            index: ${{ matrix.index }}
+            uuid: ${{ matrix.uuid }}
           debug: true
 
   test-large:
     name: Test Large
-    needs: exec-large
+    needs:
+      - setup-large
+      - exec-large
     runs-on: ubuntu-latest
     steps:
       - name: Expected JSON
         id: expected
         run: |
-          json="$(jq -n '[range(1; 51)] | map({index: .})')"
-
+          json="$(jq '.uuid | map({uuid: .})' <<<"${matrix}")"
           {
             echo "json<<EOF"
             jq '.' <<<"${json}"
             echo "EOF"
           } >>"$GITHUB_OUTPUT"
+        env:
+          matrix: ${{ needs.setup-large.outputs.matrix-json }}
       - name: Output JSON
         run: |
           if [[ "${output_json}" != "${expected_json}" ]]; then
@@ -301,5 +304,5 @@ jobs:
               exit 1
           fi
         env:
-          output_json: ${{ needs.exec-race-condition.outputs.results-json }}
+          output_json: ${{ needs.exec-large.outputs.results-json }}
           expected_json: ${{ steps.expected.outputs.json}}
