@@ -308,6 +308,9 @@ jobs:
           matrix: ${{ needs.setup-large.outputs.matrix-json }}
       - name: Output JSON
         run: |
+          # Order of output is based upon matrix execution not matrix order
+          output_json=$(jq '.job | {job: sort_by(.index)}' <<<"${output_json}")"
+
           if [[ "${output_json}" != "${expected_json}" ]]; then
               cat <<<"${output_json}" >"output"
               cat <<<"${expected_json}" >"expected"
