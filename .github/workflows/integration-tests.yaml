@@ -248,7 +248,7 @@ jobs:
       - id: matrix
         run: |
           matrix='{"job": []}'
-          for i in {1..40}; do
+          for i in {1..50}; do
             # Include a UUID to artificially increase the job name length
             uuid="$(cat /proc/sys/kernel/random/uuid)"
             matrix="$(
