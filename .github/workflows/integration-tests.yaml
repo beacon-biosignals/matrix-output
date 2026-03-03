@@ -253,9 +253,9 @@ jobs:
             uuid="$(cat /proc/sys/kernel/random/uuid)"
             matrix="$(
               jq \
-              --arg index "${index}" \
+              --argjson index "$i" \
               --arg uuid "${uuid}" \
-              '.job += {index: $index, uuid: $uuid}' \
+              '.job += [{index: $index, uuid: $uuid}]' \
               <<<"${matrix}"
             )"
           done
