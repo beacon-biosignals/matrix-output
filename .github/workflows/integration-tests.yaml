@@ -184,7 +184,7 @@ jobs:
           exit 1
 
   exec-race-condition:
-    name: ExecuteRace Condition
+    name: Execute Race Condition
     runs-on: ubuntu-latest
     permissions:
       actions: read
