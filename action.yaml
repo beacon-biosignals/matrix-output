@@ -32,13 +32,14 @@ runs:
       run: |
         input_json="$(yq -o=json <<<"${input_yaml:?}")"
         jq -ne \
-            --argjson metadata "{\"job-id\": ${self_job_id:?}}" \
+            --argjson metadata "{\"job-id\": ${self_job_id:?}, \"job-index\": ${self_job_index:?}}" \
             --argjson outputs "${input_json:?}" \
             '$ARGS.named' | tee -a job-output.json
         touch job-sync
       env:
         input_yaml: ${{ inputs.yaml }}
         self_job_id: ${{ steps.job.outputs.id }}
+        self_job_index: ${{ strategy.job-index }}
     - name: Upload job output
       uses: actions/upload-artifact@v5
       with:
@@ -57,7 +58,7 @@ runs:
       run: |
         # Determine artifact jobs
         shopt -s globstar
-        jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/**/*.json)"
+        jobs="$(jq -rs '[.[].metadata] | map({id: ."job-id", index: ."job-index"})' matrix-output/**/*.json)"
 
         if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ inputs.debug }}" == "true" ]]; then
             echo "Artifact jobs:" >&2
