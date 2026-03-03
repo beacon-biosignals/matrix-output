@@ -238,6 +238,9 @@ jobs:
   # Workflow which contain a large number of jobs may run into "bash: Argument list too long"
   # if we haven't reduced the job content internally. If this occurs failures may also occur
   # on other integration tests.
+  # 
+  # Having the number of jobs exceed 100 forces pagination to occur which takes some special
+  # handling
   setup-large:
     name: Setup Large
     runs-on: ubuntu-latest
@@ -250,7 +253,7 @@ jobs:
           matrix='{"job": []}'
           # Maximum allowed number of jobs is 256:
           # "Strategy for job 'exec-large' produced N configurations which exceeds the maximum of 256 configurations"
-          for i in {1..256}; do
+          for i in {1..101}; do
             # Include a UUID to artificially increase the job name length
             uuid="$(cat /proc/sys/kernel/random/uuid)"
             matrix="$(
