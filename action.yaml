@@ -165,6 +165,7 @@ runs:
       if: ${{ steps.matrix-jobs.outputs.num == strategy.job-total && steps.matrix-jobs.outputs.num-running > 1 }}
       shell: bash
       run: |
+        set -x
         # Wait for running matrix jobs
         start=$(date +%s)
 
