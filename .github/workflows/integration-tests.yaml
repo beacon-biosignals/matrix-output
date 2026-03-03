@@ -235,6 +235,9 @@ jobs:
               }
             ]
 
+  # Workflow which contain a large number of jobs may run into "bash: Argument list too long"
+  # if we haven't reduced the job content internally. If this occurs failures may also occur
+  # on other integration tests.
   setup-large:
     name: Setup Large
     runs-on: ubuntu-latest
@@ -244,10 +247,9 @@ jobs:
     steps:
       - id: matrix
         run: |
-          matrix='{"uuid": []}'
+          matrix='{"index": []}'
           for i in {1..30}; do
-            uuid="$(cat /proc/sys/kernel/random/uuid)"
-            matrix="$(jq --arg uuid "${uuid}" '.uuid += [$uuid]' <<<"${matrix}")"
+            matrix="$(jq --arg index "${index}" '.index += [$index]' <<<"${matrix}")"
           done
 
           {
@@ -274,7 +276,7 @@ jobs:
         id: matrix-output
         with:
           yaml: |
-            uuid: ${{ matrix.uuid }}
+            index: ${{ matrix.index }}
           debug: true
 
   test-large:
@@ -287,7 +289,7 @@ jobs:
       - name: Expected JSON
         id: expected
         run: |
-          json="$(jq '.uuid | map({uuid: .})' <<<"${matrix}")"
+          json="$(jq '.index | map({index: .})' <<<"${matrix}")"
           {
             echo "json<<EOF"
             jq '.' <<<"${json}"
