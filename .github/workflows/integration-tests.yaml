@@ -248,7 +248,9 @@ jobs:
       - id: matrix
         run: |
           matrix='{"job": []}'
-          for i in {1..500}; do
+          # Maximum allowed number of jobs is 256:
+          # "Strategy for job 'exec-large' produced N configurations which exceeds the maximum of 256 configurations"
+          for i in {1..256}; do
             # Include a UUID to artificially increase the job name length
             uuid="$(cat /proc/sys/kernel/random/uuid)"
             matrix="$(
