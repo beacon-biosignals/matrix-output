@@ -26,7 +26,8 @@ runs:
   using: composite
   steps:
     - id: job
-      uses: beacon-biosignals/job-context@2f92656dba435815b1248b58e472f8721fb8a448 # v1.1.2
+      # uses: beacon-biosignals/job-context@2f92656dba435815b1248b58e472f8721fb8a448 # v1.1.2
+      uses: beacon-biosignals/job-context@6cdc430ffafdf7b69d31fa7442f30de07e88cc77 # https://github.com/beacon-biosignals/job-context/pull/16
     - name: Generate job output
       shell: bash
       run: |
@@ -93,7 +94,7 @@ runs:
         # here as it has proven to be unreliable and does not include running jobs.
         jobs='[]'
         for attempt in $(seq 1 ${run_attempt}); do
-            attempt_jobs="$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${attempt:?}/jobs" --jq '.jobs')"
+            attempt_jobs="$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${attempt:?}/jobs" | jq -s '[.[].jobs[]]')"
 
             # Remove job entries which weren't actually executed during this attempt.
             # The GitHub API includes new `job_id`s for each `run_attempt` and we want to
@@ -186,9 +187,9 @@ runs:
             sync_artifact_name="${sync_artifact_prefix:?}-${job_index:?}"
 
             # https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#list-workflow-run-artifacts
-            artifacts="$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts")"
+            artifacts="$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts" | jq -s '[.[].artifacts[]]')"
 
-            sync_artifact_exists="$(jq --arg name "${sync_artifact_name:?}" '.artifacts | map(select(.name == $name)) | any' <<<"${artifacts}")"
+            sync_artifact_exists="$(jq --arg name "${sync_artifact_name:?}" 'map(select(.name == $name)) | any' <<<"${artifacts}")"
             if [[ "${sync_artifact_exists}" == "true" ]]; then
                 remaining_job_ids=("${remaining_job_ids[@]:1}")  # Drop the first element
                 continue
