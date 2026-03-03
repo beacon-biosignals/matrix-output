@@ -7,8 +7,8 @@ on:
       - ".github/workflows/integration-tests.yaml"
 
 jobs:
-  setup-simple:
-    name: Setup Simple
+  exec-simple:
+    name: Execute Simple
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -26,7 +26,7 @@ jobs:
       # Slow down on job to ensure that this is the last run
       - if: ${{ strategy.job-index == 0 }}
         run: sleep 5
-      # Keep `id` the same between `setup-simple` and `setup-complex`
+      # Keep `id` the same between `exec-simple` and `exec-complex`
       # to ensure we can separate output per job.
       - uses: ./
         id: matrix-output
@@ -37,7 +37,7 @@ jobs:
 
   test-simple:
     name: Test Simple
-    needs: setup-simple
+    needs: exec-simple
     runs-on: ubuntu-latest
     steps:
       - name: Output JSON
@@ -49,7 +49,7 @@ jobs:
               exit 1
           fi
         env:
-          output_json: ${{ needs.setup-simple.outputs.results-json }}
+          output_json: ${{ needs.exec-simple.outputs.results-json }}
           expected_json: |-
             [
               {
@@ -60,8 +60,8 @@ jobs:
               }
             ]
 
-  setup-complex:
-    name: Setup Complex
+  exec-complex:
+    name: Execute Complex
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -81,7 +81,7 @@ jobs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
       - uses: actions/checkout@v5
-      # Keep `id` the same between `setup-simple` and `setup-complex`
+      # Keep `id` the same between `exec-simple` and `exec-complex`
       # to ensure we can separate output per job.
       - uses: ./
         id: matrix-output
@@ -95,7 +95,7 @@ jobs:
 
   test-complex:
     name: Test Complex
-    needs: setup-complex
+    needs: exec-complex
     runs-on: ubuntu-latest
     steps:
       - name: Output JSON
@@ -107,7 +107,7 @@ jobs:
               exit 1
           fi
         env:
-          output_json: ${{ needs.setup-complex.outputs.results-json }}
+          output_json: ${{ needs.exec-complex.outputs.results-json }}
           expected_json: |-
             [
               {
@@ -183,8 +183,8 @@ jobs:
           echo "matrix-output2: ${{ steps.matrix-output2.outcome }}" >&2
           exit 1
 
-  setup-race-condition:
-    name: Setup Race Condition
+  exec-race-condition:
+    name: ExecuteRace Condition
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -212,7 +212,7 @@ jobs:
 
   test-race-condition:
     name: Test Race Condition
-    needs: setup-race-condition
+    needs: exec-race-condition
     runs-on: ubuntu-latest
     steps:
       - name: Output JSON
@@ -224,7 +224,7 @@ jobs:
               exit 1
           fi
         env:
-          output_json: ${{ needs.setup-race-condition.outputs.results-json }}
+          output_json: ${{ needs.exec-race-condition.outputs.results-json }}
           expected_json: |-
             [
               {
