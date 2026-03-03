@@ -247,9 +247,17 @@ jobs:
     steps:
       - id: matrix
         run: |
-          matrix='{"index": []}'
+          matrix='{"job": []}'
           for i in {1..30}; do
-            matrix="$(jq --arg index "${index}" '.index += [$index]' <<<"${matrix}")"
+            # Include a UUID to artificially increase the job name length
+            uuid="$(cat /proc/sys/kernel/random/uuid)"
+            matrix="$(
+              jq \
+              --arg index "${index}" \
+              --arg uuid "${uuid}" \
+              '.job += {index: $index, uuid: $uuid}' \
+              <<<"${matrix}"
+            )"
           done
 
           {
@@ -259,7 +267,7 @@ jobs:
           } | tee -a "$GITHUB_OUTPUT"
 
   exec-large:
-    name: Execute Large
+    name: Execute Large (${{ matrix.job.index }}, ${{ matrix.job.uuid }})
     needs: setup-large
     runs-on: ubuntu-latest
     permissions:
@@ -276,7 +284,8 @@ jobs:
         id: matrix-output
         with:
           yaml: |
-            index: ${{ matrix.index }}
+            index: ${{ matrix.job.index }}
+            uuid: ${{ matrix.job.uuid }}
           debug: true
 
   test-large:
@@ -289,7 +298,7 @@ jobs:
       - name: Expected JSON
         id: expected
         run: |
-          json="$(jq '.index | map({index: .})' <<<"${matrix}")"
+          json="$(jq '.job | map({.index, .uuid})' <<<"${matrix}")"
           {
             echo "json<<EOF"
             jq '.' <<<"${json}"
