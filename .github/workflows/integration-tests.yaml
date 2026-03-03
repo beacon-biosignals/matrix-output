@@ -298,7 +298,7 @@ jobs:
       - name: Expected JSON
         id: expected
         run: |
-          json="$(jq '.job | map({.index, .uuid})' <<<"${matrix}")"
+          json="$(jq '.job | map({index, uuid})' <<<"${matrix}")"
           {
             echo "json<<EOF"
             jq '.' <<<"${json}"
