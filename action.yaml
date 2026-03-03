@@ -105,9 +105,12 @@ runs:
         # Remove older jobs which were re-run
         jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${jobs}")"
 
+        # Reduce size of executed jobs content
+        jobs="$(jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}")"
+
         if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ inputs.debug }}" == "true" ]]; then
             echo "Executed jobs:" >&2
-            jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}" >&2
+            jq '.' <<<"${jobs}" >&2
         fi
 
         {

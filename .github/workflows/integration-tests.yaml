@@ -234,3 +234,72 @@ jobs:
                 "index": 2
               }
             ]
+
+  setup-large:
+    name: Setup Large
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      matrix-json: ${{ steps.matrix.outputs.json }}
+    steps:
+      - id: matrix
+        run: |
+          matrix='{"uuid": []}'
+          for i in {1..50}; do
+            uuid="$(cat /proc/sys/kernel/random/uuid)"
+            matrix="$(jq --arg uuid "${uuid}" '.uuid += [$uuid]' <<<"${matrix}")"
+          done
+
+          {
+            echo "json<<EOF"
+            jq '.' <<<"${matrix}"
+            echo "EOF"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  exec-large:
+    name: Execute Large
+    needs: setup-large
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup-large.outputs.json) }}
+    outputs:
+      results-json: ${{ steps.matrix-output.outputs.json }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./
+        id: matrix-output
+        with:
+          yaml: |
+            index: ${{ matrix.index }}
+          debug: true
+
+  test-large:
+    name: Test Large
+    needs: exec-large
+    runs-on: ubuntu-latest
+    steps:
+      - name: Expected JSON
+        id: expected
+        run: |
+          json="$(jq -n '[range(1; 51)] | map({index: .})')"
+
+          {
+            echo "json<<EOF"
+            jq '.' <<<"${json}"
+            echo "EOF"
+          } >>"$GITHUB_OUTPUT"
+      - name: Output JSON
+        run: |
+          if [[ "${output_json}" != "${expected_json}" ]]; then
+              cat <<<"${output_json}" >"output"
+              cat <<<"${expected_json}" >"expected"
+              diff output expected | cat -te
+              exit 1
+          fi
+        env:
+          output_json: ${{ needs.exec-race-condition.outputs.results-json }}
+          expected_json: ${{ steps.expected.outputs.json}}
