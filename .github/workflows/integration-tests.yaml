@@ -238,7 +238,7 @@ jobs:
   # Workflow which contain a large number of jobs may run into "bash: Argument list too long"
   # if we haven't reduced the job content internally. If this occurs failures may also occur
   # on other integration tests.
-  # 
+  #
   # Having the number of jobs exceed 100 forces pagination to occur which takes some special
   # handling
   setup-large:
@@ -313,9 +313,6 @@ jobs:
           matrix: ${{ needs.setup-large.outputs.matrix-json }}
       - name: Output JSON
         run: |
-          # Order of output is based upon matrix execution not matrix order
-          output_json="$(jq 'sort_by(.index)' <<<"${output_json}")"
-
           if [[ "${output_json}" != "${expected_json}" ]]; then
               cat <<<"${output_json}" >"output"
               cat <<<"${expected_json}" >"expected"

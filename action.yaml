@@ -226,6 +226,6 @@ runs:
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
         {
             echo "json<<EOF"
-            jq -s '[.[].outputs]' matrix-output/**/*.json
+            jq -s 'sort_by(.metadata."job-index") | [.[].outputs]' matrix-output/**/*.json
             echo "EOF"
         } | tee -a "$GITHUB_OUTPUT"
