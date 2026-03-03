@@ -265,7 +265,7 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.setup-large.outputs.json) }}
+      matrix: ${{ fromJSON(needs.setup-large.outputs.matrix-json) }}
     outputs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
