@@ -26,19 +26,20 @@ runs:
   using: composite
   steps:
     - id: job
-      uses: beacon-biosignals/job-context@656c4f5d624c5e6b5679e742c179f5f6da90b02d  # v1.1.1
+      uses: beacon-biosignals/job-context@1978ffa0bc81154fe858102906001ff649a11282 # v1.1.3
     - name: Generate job output
       shell: bash
       run: |
         input_json="$(yq -o=json <<<"${input_yaml:?}")"
         jq -ne \
-            --argjson metadata "{\"job-id\": ${self_job_id:?}}" \
+            --argjson metadata "{\"job-id\": ${self_job_id:?}, \"job-index\": ${self_job_index:?}}" \
             --argjson outputs "${input_json:?}" \
             '$ARGS.named' | tee -a job-output.json
         touch job-sync
       env:
         input_yaml: ${{ inputs.yaml }}
         self_job_id: ${{ steps.job.outputs.id }}
+        self_job_index: ${{ strategy.job-index }}
     - name: Upload job output
       uses: actions/upload-artifact@v5
       with:
@@ -57,7 +58,7 @@ runs:
       run: |
         # Determine artifact jobs
         shopt -s globstar
-        jobs="$(jq -rs '[.[].metadata."job-id"] | to_entries | map({id: .value, index: .key})' matrix-output/**/*.json)"
+        jobs="$(jq -rs '[.[].metadata] | map({id: ."job-id", index: ."job-index"})' matrix-output/**/*.json)"
 
         if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ inputs.debug }}" == "true" ]]; then
             echo "Artifact jobs:" >&2
@@ -92,7 +93,7 @@ runs:
         # here as it has proven to be unreliable and does not include running jobs.
         jobs='[]'
         for attempt in $(seq 1 ${run_attempt}); do
-            attempt_jobs="$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${attempt:?}/jobs" --jq '.jobs')"
+            attempt_jobs="$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/attempts/${attempt:?}/jobs" | jq -s '[.[].jobs[]]')"
 
             # Remove job entries which weren't actually executed during this attempt.
             # The GitHub API includes new `job_id`s for each `run_attempt` and we want to
@@ -105,9 +106,13 @@ runs:
         # Remove older jobs which were re-run
         jobs="$(jq 'sort_by(.created_at) | reverse | unique_by(.name)' <<<"${jobs}")"
 
+        # Reduce size of executed jobs content. Doing this avoids having `bash` fail with
+        # "Argument list too long" when the run contains 50+ jobs.
+        jobs="$(jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}")"
+
         if [[ "$RUNNER_DEBUG" -eq 1 ]] || [[ "${{ inputs.debug }}" == "true" ]]; then
             echo "Executed jobs:" >&2
-            jq '[.[] | {id, name, run_id, run_attempt, created_at, completed_at, conclusion}]' <<<"${jobs}" >&2
+            jq '.' <<<"${jobs}" >&2
         fi
 
         {
@@ -180,9 +185,9 @@ runs:
             sync_artifact_name="${sync_artifact_prefix:?}-${job_index:?}"
 
             # https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#list-workflow-run-artifacts
-            artifacts="$(gh api -X GET "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts")"
+            artifacts="$(gh api -X GET --paginate "/repos/{owner}/{repo}/actions/runs/${run_id:?}/artifacts" | jq -s '[.[].artifacts[]]')"
 
-            sync_artifact_exists="$(jq --arg name "${sync_artifact_name:?}" '.artifacts | map(select(.name == $name)) | any' <<<"${artifacts}")"
+            sync_artifact_exists="$(jq --arg name "${sync_artifact_name:?}" 'map(select(.name == $name)) | any' <<<"${artifacts}")"
             if [[ "${sync_artifact_exists}" == "true" ]]; then
                 remaining_job_ids=("${remaining_job_ids[@]:1}")  # Drop the first element
                 continue
@@ -219,6 +224,6 @@ runs:
         # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
         {
             echo "json<<EOF"
-            jq -s '[.[].outputs]' matrix-output/**/*.json
+            jq -s 'sort_by(.metadata."job-index") | [.[].outputs]' matrix-output/**/*.json
             echo "EOF"
         } | tee -a "$GITHUB_OUTPUT"

@@ -7,8 +7,8 @@ on:
       - ".github/workflows/integration-tests.yaml"
 
 jobs:
-  setup-simple:
-    name: Setup Simple
+  exec-simple:
+    name: Execute Simple
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -26,7 +26,7 @@ jobs:
       # Slow down on job to ensure that this is the last run
       - if: ${{ strategy.job-index == 0 }}
         run: sleep 5
-      # Keep `id` the same between `setup-simple` and `setup-complex`
+      # Keep `id` the same between `exec-simple` and `exec-complex`
       # to ensure we can separate output per job.
       - uses: ./
         id: matrix-output
@@ -37,7 +37,7 @@ jobs:
 
   test-simple:
     name: Test Simple
-    needs: setup-simple
+    needs: exec-simple
     runs-on: ubuntu-latest
     steps:
       - name: Output JSON
@@ -49,7 +49,7 @@ jobs:
               exit 1
           fi
         env:
-          output_json: ${{ needs.setup-simple.outputs.results-json }}
+          output_json: ${{ needs.exec-simple.outputs.results-json }}
           expected_json: |-
             [
               {
@@ -60,8 +60,8 @@ jobs:
               }
             ]
 
-  setup-complex:
-    name: Setup Complex
+  exec-complex:
+    name: Execute Complex
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -81,7 +81,7 @@ jobs:
       results-json: ${{ steps.matrix-output.outputs.json }}
     steps:
       - uses: actions/checkout@v6
-      # Keep `id` the same between `setup-simple` and `setup-complex`
+      # Keep `id` the same between `exec-simple` and `exec-complex`
       # to ensure we can separate output per job.
       - uses: ./
         id: matrix-output
@@ -95,7 +95,7 @@ jobs:
 
   test-complex:
     name: Test Complex
-    needs: setup-complex
+    needs: exec-complex
     runs-on: ubuntu-latest
     steps:
       - name: Output JSON
@@ -107,7 +107,7 @@ jobs:
               exit 1
           fi
         env:
-          output_json: ${{ needs.setup-complex.outputs.results-json }}
+          output_json: ${{ needs.exec-complex.outputs.results-json }}
           expected_json: |-
             [
               {
@@ -183,8 +183,8 @@ jobs:
           echo "matrix-output2: ${{ steps.matrix-output2.outcome }}" >&2
           exit 1
 
-  setup-race-condition:
-    name: Setup Race Condition
+  exec-race-condition:
+    name: Execute Race Condition
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -212,7 +212,7 @@ jobs:
 
   test-race-condition:
     name: Test Race Condition
-    needs: setup-race-condition
+    needs: exec-race-condition
     runs-on: ubuntu-latest
     steps:
       - name: Output JSON
@@ -224,7 +224,7 @@ jobs:
               exit 1
           fi
         env:
-          output_json: ${{ needs.setup-race-condition.outputs.results-json }}
+          output_json: ${{ needs.exec-race-condition.outputs.results-json }}
           expected_json: |-
             [
               {
@@ -234,3 +234,94 @@ jobs:
                 "index": 2
               }
             ]
+
+  # Workflow which contain a large number of jobs may run into "bash: Argument list too long"
+  # if we haven't reduced the job content internally. If this occurs failures may also occur
+  # on other integration tests.
+  #
+  # Having the number of jobs exceed 100 forces pagination to occur which takes some special
+  # handling
+  setup-large:
+    name: Setup Large
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      matrix-json: ${{ steps.matrix.outputs.json }}
+    steps:
+      - id: matrix
+        run: |
+          matrix='{"job": []}'
+          # Maximum allowed number of jobs is 256:
+          # "Strategy for job 'exec-large' produced N configurations which exceeds the maximum of 256 configurations"
+          #
+          # We choose the number 101 here to ensure we at least over 100 jobs which ensures
+          # that any queries targeting this workflow run must use pagination.
+          for i in {1..101}; do
+            # Include a UUID to artificially increase the job name length
+            uuid="$(cat /proc/sys/kernel/random/uuid)"
+            matrix="$(
+              jq \
+              --argjson index "$i" \
+              --arg uuid "${uuid}" \
+              '.job += [{index: $index, uuid: $uuid}]' \
+              <<<"${matrix}"
+            )"
+          done
+
+          {
+            echo "json<<EOF"
+            jq '.' <<<"${matrix}"
+            echo "EOF"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  exec-large:
+    name: Execute Large (${{ matrix.job.index }}, ${{ matrix.job.uuid }})
+    needs: setup-large
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup-large.outputs.matrix-json) }}
+    outputs:
+      results-json: ${{ steps.matrix-output.outputs.json }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./
+        id: matrix-output
+        with:
+          yaml: |
+            index: ${{ matrix.job.index }}
+            uuid: ${{ matrix.job.uuid }}
+          debug: true
+
+  test-large:
+    name: Test Large
+    needs:
+      - setup-large
+      - exec-large
+    runs-on: ubuntu-latest
+    steps:
+      - name: Expected JSON
+        id: expected
+        run: |
+          json="$(jq '.job | map({index, uuid})' <<<"${matrix}")"
+          {
+            echo "json<<EOF"
+            jq '.' <<<"${json}"
+            echo "EOF"
+          } >>"$GITHUB_OUTPUT"
+        env:
+          matrix: ${{ needs.setup-large.outputs.matrix-json }}
+      - name: Output JSON
+        run: |
+          if [[ "${output_json}" != "${expected_json}" ]]; then
+              cat <<<"${output_json}" >"output"
+              cat <<<"${expected_json}" >"expected"
+              diff output expected | cat -te
+              exit 1
+          fi
+        env:
+          output_json: ${{ needs.exec-large.outputs.results-json }}
+          expected_json: ${{ steps.expected.outputs.json}}
