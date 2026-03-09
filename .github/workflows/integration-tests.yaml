@@ -254,7 +254,7 @@ jobs:
           # Maximum allowed number of jobs is 256:
           # "Strategy for job 'exec-large' produced N configurations which exceeds the maximum of 256 configurations"
           #
-          # We choose the number 101 here to ensure we at least over 101 jobs which ensures
+          # We choose the number 101 here to ensure we at least over 100 jobs which ensures
           # that any queries targeting this workflow run must use pagination.
           for i in {1..101}; do
             # Include a UUID to artificially increase the job name length
